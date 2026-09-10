@@ -5,6 +5,7 @@
 /// The emphasis is on the validation docs/24_DOMAIN_MODEL.md §34 asks for —
 /// invalid state should be impossible to construct, not merely discouraged.
 
+#include <algorithm>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -770,10 +771,34 @@ TEST(TrafficEvent, traffic_event_detects_a_stale_state_version) {
     EXPECT_TRUE(result.value().is_stale(StateVersion{105}));
 }
 
-TEST(TrafficEvent, traffic_event_is_not_assignable) {
-    // docs/20_CODING_GUIDELINES.md §39 — events are immutable records.
-    static_assert(!std::is_copy_assignable_v<TrafficEvent>);
-    SUCCEED();
+/// docs/20_CODING_GUIDELINES.md §39 — events are immutable records. That is
+/// enforced by there being no mutators, not by const members: events arrive out
+/// of order and have to be sortable by timestamp
+/// (docs/10_TRAFFIC_CONTROLLER.md §22), which const members would prevent.
+TEST(TrafficEvent, traffic_event_survives_being_stored_and_reordered) {
+    static_assert(std::is_copy_constructible_v<TrafficEvent>);
+    static_assert(std::is_move_constructible_v<TrafficEvent>);
+
+    std::vector<TrafficEvent> queue;
+    for (const int second : {30, 10, 20}) {
+        auto event = make_traffic_event(core::EventId{"EV" + std::to_string(second)},
+                                        TrafficEventType::map_updated,
+                                        kTimeOrigin + Seconds{second},
+                                        std::nullopt,
+                                        StateVersion{},
+                                        MapVersion{});
+        ASSERT_TRUE(event.has_value());
+        queue.push_back(std::move(event).value());
+    }
+
+    std::sort(queue.begin(), queue.end(), [](const TrafficEvent& a, const TrafficEvent& b) {
+        return a.timestamp() < b.timestamp();
+    });
+
+    ASSERT_EQ(queue.size(), 3U);
+    EXPECT_EQ(queue[0].timestamp(), kTimeOrigin + Seconds{10});
+    EXPECT_EQ(queue[2].timestamp(), kTimeOrigin + Seconds{30});
+    EXPECT_EQ(queue[0].id(), core::EventId{"EV10"}) << "reordering must not corrupt the record";
 }
 
 TEST(TrafficEvent, traffic_event_type_names_round_trip) {

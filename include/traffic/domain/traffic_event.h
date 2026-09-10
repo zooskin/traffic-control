@@ -107,9 +107,15 @@ public:
     [[nodiscard]] bool is_stale(StateVersion current) const noexcept;
 
 private:
-    // const rather than convention: docs/20_CODING_GUIDELINES.md §39. The type
-    // is therefore copyable but not assignable, which is the intent — an event
-    // is passed around, never rewritten.
+    // Immutability here is enforced by the absence of mutators: every accessor
+    // is const and nothing sets a field after construction
+    // (docs/20_CODING_GUIDELINES.md §39).
+    //
+    // The members are deliberately *not* const. Const members would make the
+    // type non-assignable, and events have to be sortable — they arrive out of
+    // order and the controller reorders them by timestamp
+    // (docs/10_TRAFFIC_CONTROLLER.md §22). An unsortable event is worse than a
+    // technically-assignable one that nothing assigns to.
     core::EventId id_;
     TrafficEventType type_;
     core::TimePoint timestamp_;
