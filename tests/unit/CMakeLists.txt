@@ -19,6 +19,14 @@ tc_add_test(tc_domain_tests
         tc::domain
 )
 
+tc_add_test(tc_map_tests
+    LABEL   unit
+    SOURCES
+        map/map_test.cpp
+    LIBS
+        tc::map
+)
+
 tc_add_test(tc_infrastructure_tests
     LABEL   unit
     SOURCES
