@@ -1,18 +1,22 @@
 #include "traffic/domain/graph.h"
 
 #include <array>
+#include <chrono>
 #include <utility>
 
 namespace traffic::domain {
 namespace {
 
-constexpr std::array<std::pair<NodeType, std::string_view>, 6> kNodeTypeNames{{
+constexpr std::array<std::pair<NodeType, std::string_view>, kNodeTypeCount> kNodeTypeNames{{
     {NodeType::normal, "NORMAL"},
     {NodeType::intersection, "INTERSECTION"},
-    {NodeType::charging, "CHARGING"},
-    {NodeType::loading, "LOADING"},
-    {NodeType::unloading, "UNLOADING"},
-    {NodeType::holding, "HOLDING"},
+    {NodeType::station, "STATION"},
+    {NodeType::pickup, "PICKUP"},
+    {NodeType::dropoff, "DROPOFF"},
+    {NodeType::charger, "CHARGER"},
+    {NodeType::waiting_bay, "WAITING_BAY"},
+    {NodeType::entry, "ENTRY"},
+    {NodeType::exit, "EXIT"},
 }};
 
 constexpr std::array<std::pair<EdgeDirection, std::string_view>, 3> kEdgeDirectionNames{{
@@ -85,6 +89,18 @@ std::optional<core::NodeId> opposite_node(const Edge& edge, const core::NodeId& 
         return edge.from_node;
     }
     return std::nullopt;
+}
+
+core::Duration nominal_travel_time(const Edge& edge) noexcept {
+    if (edge.travel_time_override.has_value()) {
+        return *edge.travel_time_override;
+    }
+    if (edge.speed_limit <= 0.0) {
+        // make_edge refuses this, but an Edge built by hand could carry it.
+        return core::Duration::zero();
+    }
+    const double seconds = edge.length / edge.speed_limit;
+    return std::chrono::duration_cast<core::Duration>(std::chrono::duration<double>{seconds});
 }
 
 core::ResourceId effective_resource(const Edge& edge) {

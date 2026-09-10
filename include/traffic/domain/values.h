@@ -19,13 +19,17 @@
 
 namespace traffic::domain {
 
-/// A point in the plane, in metres.
+/// A point in space, in metres.
 ///
 /// Traffic decisions are made on the graph, not on coordinates — this exists
 /// for map geometry, logging and visualisation. Do not route on it.
+///
+/// `z` is present because docs/03_MAP_GRAPH.md §4 lists it, and a multi-floor
+/// site needs it. It stays 0 in a single-floor warehouse.
 struct Position {
     double x{0.0};
     double y{0.0};
+    double z{0.0};
 
     [[nodiscard]] friend bool operator==(const Position&, const Position&) = default;
 };

@@ -24,6 +24,12 @@ struct Resource {};
 struct Corridor {};
 struct Intersection {};
 
+/// One way through an intersection — docs/03_MAP_GRAPH.md §12.
+struct Movement {};
+
+/// A set of movements that exclude each other — docs/03_MAP_GRAPH.md §11.
+struct ConflictGroup {};
+
 // Traffic — docs/24_DOMAIN_MODEL.md §11~23
 struct Route {};
 struct Reservation {};
@@ -51,6 +57,8 @@ using EdgeId = StrongId<tags::Edge>;
 using ResourceId = StrongId<tags::Resource>;
 using CorridorId = StrongId<tags::Corridor>;
 using IntersectionId = StrongId<tags::Intersection>;
+using MovementId = StrongId<tags::Movement>;
+using ConflictGroupId = StrongId<tags::ConflictGroup>;
 
 using RouteId = StrongId<tags::Route>;
 using ReservationId = StrongId<tags::Reservation>;

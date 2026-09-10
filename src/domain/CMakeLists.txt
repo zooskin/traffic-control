@@ -10,6 +10,7 @@ add_library(tc_domain
     errors.cpp
     graph.cpp
     reservation.cpp
+    resources.cpp
     reservation_state.cpp
     robot.cpp
     robot_state.cpp
@@ -35,6 +36,7 @@ target_sources(tc_domain PUBLIC
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/graph.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/reservation.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/reservation_state.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/domain/resources.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/robot.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/robot_state.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/route.h"

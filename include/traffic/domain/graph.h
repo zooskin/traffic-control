@@ -26,41 +26,72 @@
 
 namespace traffic::domain {
 
-/// What a node is for. docs/24_DOMAIN_MODEL.md §7.
+/// What a node is for. docs/03_MAP_GRAPH.md §5.
+///
+/// This is the nine-value set from the map specification, not the six of
+/// docs/24_DOMAIN_MODEL.md §7 — see decision D-006 in docs/00_INDEX.md. The
+/// short version: docs/01 and docs/06 use this vocabulary too, so §7 was the
+/// outlier.
 enum class NodeType {
     /// Ordinary point on the graph.
     normal,
 
     /// Where routes cross. A primary target for conflict detection and
-    /// reservation — docs/24_DOMAIN_MODEL.md §10.
+    /// reservation — docs/03_MAP_GRAPH.md §10.
     intersection,
 
+    /// A fixed work position that is neither pickup nor dropoff.
+    station,
+
+    /// Where a robot collects a load.
+    pickup,
+
+    /// Where a robot delivers one.
+    dropoff,
+
     /// Battery charging position.
-    charging,
+    charger,
 
-    /// Where a robot picks up.
-    loading,
+    /// Somewhere a robot can stand aside so others can pass.
+    ///
+    /// Central to deadlock recovery: docs/03_MAP_GRAPH.md §13 introduces
+    /// waiting bays specifically to break corridor deadlocks, and
+    /// docs/22_IMPLEMENTATION_WORKFLOW.md Phase 10 lists moving to one as a
+    /// recovery strategy.
+    waiting_bay,
 
-    /// Where a robot drops off.
-    unloading,
+    /// Where robots enter the controlled area.
+    entry,
 
-    /// Somewhere a robot can be parked out of the way. Deadlock recovery needs
-    /// these — docs/22_IMPLEMENTATION_WORKFLOW.md Phase 10 lists "safe holding
-    /// area" as a recovery strategy.
-    holding,
+    /// Where they leave it.
+    exit,
 };
+
+inline constexpr std::size_t kNodeTypeCount = 9;
 
 [[nodiscard]] std::string_view to_string(NodeType type) noexcept;
 [[nodiscard]] std::optional<NodeType> node_type_from_string(std::string_view name) noexcept;
 
-/// A point a robot can occupy or pass through.
+/// A point a robot can occupy or pass through. docs/03_MAP_GRAPH.md §4.
 struct Node {
     core::NodeId id;
     Position position;
     NodeType type{NodeType::normal};
 
+    /// Heading a robot should hold at this node, in radians. Matters at a
+    /// station or charger, where the robot has to dock facing a particular
+    /// way; empty everywhere else.
+    std::optional<double> orientation;
+
     /// How many robots may occupy it at once. Almost always 1.
     std::uint32_t capacity{1};
+
+    /// The traffic resource this node belongs to.
+    ///
+    /// Empty when the node is not part of a larger resource. An intersection's
+    /// nodes name the intersection resource, so that reserving the crossing
+    /// covers every node in it rather than each node separately.
+    core::ResourceId resource_id;
 
     [[nodiscard]] friend bool operator==(const Node& lhs, const Node& rhs) noexcept {
         // docs/24_DOMAIN_MODEL.md §33: entities compare by identity.
@@ -113,6 +144,14 @@ struct Edge {
     /// corridor — not each edge — the thing that admits one robot at a time.
     core::ResourceId resource_id;
 
+    /// Traversal time, when it is not simply length / speed_limit.
+    ///
+    /// Empty for an ordinary edge, where `nominal_travel_time` derives it.
+    /// Set it for a lift or a powered door, where the time a robot spends is
+    /// unrelated to the distance covered. Decision D-007 in docs/00_INDEX.md
+    /// explains why the derived value is the default rather than a stored one.
+    std::optional<core::Duration> travel_time_override;
+
     /// Whether traffic may use it at all. A blocked corridor is disabled
     /// rather than deleted, so the map version stays stable.
     bool enabled{true};
@@ -132,6 +171,13 @@ struct Edge {
 
 /// The resource an edge belongs to: its own id when no corridor claims it.
 [[nodiscard]] core::ResourceId effective_resource(const Edge& edge);
+
+/// How long traversing \p edge is expected to take.
+///
+/// The override when one is set, otherwise length / speed_limit. Route
+/// segments' expected entry and exit times are built from this, and those are
+/// what make temporal conflict detection possible at all.
+[[nodiscard]] core::Duration nominal_travel_time(const Edge& edge) noexcept;
 
 /// Builds a Node, rejecting an empty id.
 [[nodiscard]] core::Result<Node, DomainError> make_node(core::NodeId id,

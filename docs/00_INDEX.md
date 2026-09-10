@@ -184,6 +184,49 @@ Task       -> TaskManager
 `RobotState`라 충돌한다. enum이 `RobotState`(D-001, CLAUDE.md 확정),
 스냅샷 엔티티가 `RobotStateSnapshot`이다.
 
+### D-006. NodeType은 03을 따른다
+
+`03 §5`와 `24 §7`이 서로 다른 Node Type 집합을 정의한다.
+
+```
+03 §5 (9종)  NORMAL INTERSECTION STATION PICKUP DROPOFF
+             CHARGER WAITING_BAY ENTRY EXIT
+24 §7 (6종)  NORMAL INTERSECTION CHARGING LOADING UNLOADING HOLDING
+```
+
+**결정: `03 §5`의 9종을 정본으로 한다.**
+
+근거는 어휘 사용 빈도다. `03`의 용어는 요구사항과 예약 사양에서도 쓰인다.
+
+| 용어 | 등장 문서 |
+|---|---|
+| `WAITING_BAY` / `CHARGER` / `STATION` | **01, 03, 06** |
+| `HOLDING` / `CHARGING` / `LOADING` / `UNLOADING` | 24 |
+
+`24`가 도메인 모델의 정본이지만 이 항목에서는 나머지 사양 전체와 어긋난
+고립된 표기다. 또한 Node Type은 맵의 관심사이고 `03`이 맵 사양이다.
+
+Phase 1에서 구현한 이름을 다음과 같이 옮긴다.
+
+```
+charging  -> charger
+loading   -> pickup
+unloading -> dropoff
+holding   -> waiting_bay
+추가:        station, entry, exit
+```
+
+### D-007. Edge의 travel_time은 저장하되 파생값을 기본으로 한다
+
+`03 §6`은 Edge에 `travel_time` 필드를 둔다. 그러나 대부분의 Edge에서
+`travel_time = length / speed_limit`이므로 저장하면 두 값이 갈라진다.
+
+**결정: `travel_time`을 optional override로 두고, 비어 있으면
+`length / speed_limit`을 계산한다.**
+
+리프트나 자동문처럼 통과 시간이 거리에 비례하지 않는 구간이 실제로 있으므로
+필드 자체는 유지한다. 다만 기본은 파생값이다.
+
 ### D-004. 정책 충돌 시 우선순위
 
 21 §4의 우선순위를 문서에 대응시킨다.

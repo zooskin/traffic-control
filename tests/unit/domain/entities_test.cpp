@@ -75,17 +75,52 @@ TEST(Node, node_compares_by_identity) {
     EXPECT_EQ(a, b);
 }
 
+/// The nine types of docs/03_MAP_GRAPH.md §5 — see decision D-006.
 TEST(Node, node_type_names_round_trip) {
     for (const auto type : {NodeType::normal,
                             NodeType::intersection,
-                            NodeType::charging,
-                            NodeType::loading,
-                            NodeType::unloading,
-                            NodeType::holding}) {
+                            NodeType::station,
+                            NodeType::pickup,
+                            NodeType::dropoff,
+                            NodeType::charger,
+                            NodeType::waiting_bay,
+                            NodeType::entry,
+                            NodeType::exit}) {
         const auto parsed = node_type_from_string(to_string(type));
         ASSERT_TRUE(parsed.has_value()) << to_string(type);
         EXPECT_EQ(*parsed, type);
     }
+}
+
+TEST(Node, node_type_uses_the_vocabulary_of_the_map_specification) {
+    // D-006: docs/01 and docs/06 use these names too; docs/24 §7 was the
+    // outlier and does not win here.
+    EXPECT_EQ(to_string(NodeType::waiting_bay), "WAITING_BAY");
+    EXPECT_EQ(to_string(NodeType::charger), "CHARGER");
+    EXPECT_EQ(to_string(NodeType::station), "STATION");
+}
+
+// ------------------------------------------------------------ travel time
+
+TEST(Edge, edge_travel_time_derives_from_length_and_speed) {
+    const auto edge =
+        make_edge(EdgeId{"E1"}, NodeId{"A"}, NodeId{"B"}, 10.0, 2.0, EdgeDirection::forward);
+    ASSERT_TRUE(edge.has_value());
+
+    EXPECT_EQ(nominal_travel_time(edge.value()), core::Duration{Seconds{5}});
+}
+
+/// A lift or a powered door takes a time unrelated to the distance covered —
+/// decision D-007.
+TEST(Edge, edge_travel_time_override_wins) {
+    auto edge =
+        make_edge(EdgeId{"E1"}, NodeId{"A"}, NodeId{"B"}, 10.0, 2.0, EdgeDirection::forward);
+    ASSERT_TRUE(edge.has_value());
+
+    Edge lift = edge.value();
+    lift.travel_time_override = core::Duration{Seconds{30}};
+
+    EXPECT_EQ(nominal_travel_time(lift), core::Duration{Seconds{30}});
 }
 
 // ==================================================================== Edge
