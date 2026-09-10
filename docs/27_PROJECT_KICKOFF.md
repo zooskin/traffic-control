@@ -103,15 +103,41 @@ Sanitizer(ASan+UBSan, TSan)에서도 32/32 통과했다.
 
 **Phase 0 완료.**
 
-### Week 2 — Phase 1: Core Domain
+### Week 2 — Phase 1: Core Domain ✅ 완료
 
-`24_DOMAIN_MODEL` 기준.
+`24_DOMAIN_MODEL` 기준. 단위 테스트 **174개, 5개 환경 전부 통과**.
 
-- Robot, RobotState, Task, Node, Edge, Route, Reservation, Conflict,
-  TrafficEvent, TrafficDecision, PlanningRequest, PlanningResult
-- RobotState 전이 테이블 — 잘못된 전이는 명시적으로 거부
-- Domain Invariants (24 §30) 테스트
-- 도메인은 DB / Network / Vendor SDK에 의존하지 않는다
+3개 배치로 나눠 각각 CI 검증했다. 로컬 컴파일러가 없으므로 한 번에 밀어넣으면
+오류 위치를 좁히는 데 왕복이 더 든다.
+
+| 배치 | 내용 | CI |
+|---|---|---|
+| 1 | `Result<T,E>`, 값 객체(Position/Velocity/Priority/Version/TimeWindow), DomainError | 1회 통과 |
+| 2 | 상태 기계 3종 (RobotState / TaskStatus / ReservationState) | 1회 통과 |
+| 3 | 엔티티 (Robot, Task, Node, Edge, Route, Reservation, Conflict, TrafficEvent, TrafficDecision) | 2회 |
+
+**결정 사항**
+
+- `Result<T,E>` — `20 §18`은 `std::expected`를 예로 들지만 그건 C++23이고
+  `19 §10`이 C++20으로 고정한다. 같은 절이 허용하는 project-defined
+  result type으로 구현했다. 인터페이스를 `std::expected`와 맞춰뒀으므로
+  나중에 C++23으로 옮기면 대부분 이름만 바뀐다.
+- `TimeWindow`는 반개구간 `[start, end)`. 맞닿은 구간이 겹치지 않아야
+  한 로봇이 다음 로봇에게 corridor를 넘길 때 인위적인 간격이 생기지 않는다.
+- 상태 기계는 if 연쇄가 아니라 **전이 테이블**. 정책 전체가 한눈에 보이고,
+  `static_assert`가 enum과 테이블 정렬을 컴파일 타임에 묶는다.
+- 엔티티는 전부 `Result`를 반환하는 팩토리로만 생성. `24 §34`의 검증을
+  생성자 우회로 건너뛸 수 없다.
+
+**사양에 없지만 도출한 규칙 2가지**
+
+- `failed -> moving` 거부. 복구는 먼저 자원을 반납해야 하고, 건너뛰면
+  예약 테이블에 주인 없는 항목이 남는다. 복구는 `idle`을 경유한다.
+- `active -> cancelled` 거부. 로봇이 이미 자원 안에 있는데 취소하면
+  점유 사실을 기록한 유일한 근거가 사라진다. 반납하거나 만료된다.
+
+**연기한 것** — Phase 경계에 맞춤: Corridor/Intersection → Phase 2,
+PlanningRequest/Result → Phase 3, Deadlock/HumanBlockage → Phase 9.
 
 ### Week 3 — Phase 2: Map & Graph
 
