@@ -68,9 +68,11 @@ template<typename Tag>
 
 }  // namespace traffic::core
 
-// NOLINTNEXTLINE(cert-dcl58-cpp) — specialising std::hash for a program-defined
-// type is explicitly permitted ([namespace.std]/2). The check cannot tell this
-// apart from adding a new declaration to namespace std.
+// Specialising std::hash for a program-defined type is explicitly permitted by
+// [namespace.std]/2. cert-dcl58-cpp cannot tell that apart from adding a new
+// declaration to namespace std, so the block is exempted rather than the line —
+// the diagnostic lands on the struct, not on the namespace or the template head.
+// NOLINTBEGIN(cert-dcl58-cpp)
 namespace std {
 
 template<typename Tag>
@@ -81,3 +83,4 @@ struct hash<::traffic::core::StrongId<Tag>> {
 };
 
 }  // namespace std
+// NOLINTEND(cert-dcl58-cpp)

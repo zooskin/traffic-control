@@ -42,8 +42,11 @@ jobs:
       - name: Install pinned clang-format
         run: npm ci
 
+      # Invoked through bash rather than executed directly: a checkout from a
+      # Windows clone can lose the executable bit, and a formatting job that
+      # fails with "Permission denied" wastes a round trip to find out.
       - name: Check formatting
-        run: scripts/format.sh --check
+        run: bash scripts/format.sh --check
 
   build:
     name: Build & Test (${{ matrix.name }})

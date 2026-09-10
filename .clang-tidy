@@ -27,7 +27,8 @@ Checks: >
   -modernize-use-trailing-return-type,
   -performance-enum-size,
   -readability-identifier-length,
-  -readability-magic-numbers
+  -readability-magic-numbers,
+  -readability-redundant-member-init
 
 # Two checks are switched off above rather than merely demoted:
 #
@@ -40,6 +41,10 @@ Checks: >
 #   misc-include-cleaner       demands a direct include for every name used,
 #     including every spdlog::level::* enumerator. It produced more output than
 #     every other check combined and buried the findings that mattered.
+#   readability-redundant-member-init  directly contradicts GCC's
+#     -Wmissing-field-initializers, which is fatal here: it asks us to drop the
+#     `{}` that stops the compiler warning at every designated-initialiser call
+#     site. The compiler wins.
 
 # Only these become errors. The rest report. Compiler warnings are a separate
 # matter and are already fatal via -Werror / /WX (docs/19 §28).

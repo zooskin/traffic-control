@@ -23,11 +23,15 @@ namespace traffic::infrastructure {
 
 enum class LogLevel { trace, debug, info, warn, error, critical, off };
 
+// Every member carries a default initialiser, including the ones that would be
+// value-initialised anyway. Without them GCC's -Wmissing-field-initializers
+// (fatal here) fires at every designated-initialiser call site that omits a
+// field — which is most of them.
 struct LogConfig {
     LogLevel level{LogLevel::info};
 
     /// Empty disables file output.
-    std::string file_path;
+    std::string file_path{};
 
     /// Write from a background thread. Keeps the decision loop off the I/O
     /// path — see docs/23_SYSTEM_ARCHITECTURE.md §21.
