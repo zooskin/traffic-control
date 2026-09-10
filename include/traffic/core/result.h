@@ -18,7 +18,6 @@
 /// the standard type on a future C++23 switch is mostly a rename.
 
 #include <cassert>
-#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -109,37 +108,45 @@ public:
     using value_type = void;
     using error_type = E;
 
-    [[nodiscard]] static Result success() { return Result{std::nullopt}; }
+    [[nodiscard]] static Result success() { return Result{std::monostate{}}; }
 
-    [[nodiscard]] static Result failure(E error) { return Result{std::move(error)}; }
+    [[nodiscard]] static Result failure(E error) {
+        return Result{detail::ErrStorage<E>{std::move(error)}};
+    }
 
-    [[nodiscard]] bool has_value() const noexcept { return !error_.has_value(); }
+    [[nodiscard]] bool has_value() const noexcept { return storage_.index() == 0; }
 
     explicit operator bool() const noexcept { return has_value(); }
 
     /// \pre !has_value()
-    ///
-    /// `.value()` rather than `*`, and not only to satisfy the analyser. The
-    /// assert disappears under NDEBUG, and dereferencing an empty optional
-    /// there is undefined — the kind of fault that corrupts something else and
-    /// is diagnosed hours later somewhere unrelated. `.value()` throws inside
-    /// a noexcept function instead, which terminates at the offending call. A
-    /// crash at the fault beats silent corruption away from it.
     [[nodiscard]] const E& error() const& noexcept {
         assert(!has_value() && "Result::error() on a successful Result");
-        return error_.value();
+        return std::get<1>(storage_).error;
     }
 
     /// \pre !has_value()
     [[nodiscard]] E&& error() && noexcept {
         assert(!has_value() && "Result::error() on a successful Result");
-        return std::move(error_).value();
+        return std::move(std::get<1>(storage_).error);
     }
 
 private:
-    explicit Result(std::optional<E> error) : error_(std::move(error)) {}
+    // A variant rather than an optional, so this specialisation stores its
+    // error exactly the way the primary template does. That is worth more than
+    // the slightly shorter code an optional gives: one storage mechanism to
+    // reason about instead of two.
+    //
+    // It also removes a real hazard. The assert above disappears under NDEBUG,
+    // and dereferencing an empty optional there is undefined — a fault that
+    // corrupts something else and gets diagnosed hours later somewhere
+    // unrelated. `std::get` on the wrong alternative throws instead, which
+    // inside a noexcept function terminates at the offending call. A crash at
+    // the fault beats silent corruption away from it, and it is the contract
+    // std::expected documents for the same accessor.
+    explicit Result(std::variant<std::monostate, detail::ErrStorage<E>> storage)
+        : storage_(std::move(storage)) {}
 
-    std::optional<E> error_;
+    std::variant<std::monostate, detail::ErrStorage<E>> storage_;
 };
 
 /// An operation that reports only whether it succeeded.
