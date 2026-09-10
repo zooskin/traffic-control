@@ -41,7 +41,8 @@
 | 24 | `24_DOMAIN_MODEL.md` | **도메인 모델 정본** |
 | 25 | `25_TRAFFIC_CONTROL_SPECIFICATION.md` | **교통 제어 정책 정본**: corridor/교차로/대기/기아 방지 |
 | 26 | `26_TEST_SCENARIOS.md` | **시나리오 카탈로그 정본** (SC-001~) |
-| 27 | `27_PROJECT_KICKOFF.md` | 착수 계획, 마일스톤 |
+| 27 | `27_PROJECT_KICKOFF.md` | 착수 계획, 마일스톤, Phase 0~4 마감 기록 |
+| 28 | `28_HANDOFF.md` | **작업 인계**: 현재 상태, 미결 결정, 다음 계획 |
 
 ### 대체됨 (Superseded) — `docs/archive/`
 
@@ -340,6 +341,11 @@ Robot의 교통 상태가 아니므로 Phase 5의 TaskStatus가 담는다.
 **최초 1회 (전체 맥락)**
 ```
 00 -> 01 -> 23 -> 24 -> 19 -> 22
+```
+
+**이어서 작업을 맡는 경우 (워크스페이스 이관 등)**
+```
+CLAUDE.md  ->  00  ->  28 (인계)  ->  해당 Phase의 사양
 ```
 
 **코드를 쓰기 전 매번**
