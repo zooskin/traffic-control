@@ -19,18 +19,21 @@ find_clang_format() {
         return
     fi
 
+    # Pick by platform, not by "first one that exists". The npm package ships
+    # all three binaries with the executable bit set, so a `-x` probe happily
+    # selects clang-format.exe on Linux and then dies with "Exec format error".
     local base="node_modules/clang-format/bin"
-    local candidate
-    for candidate in \
-        "$base/win32/clang-format.exe" \
-        "$base/linux_x64/clang-format" \
-        "$base/darwin_x64/clang-format"
-    do
-        if [ -x "$candidate" ]; then
-            echo "$candidate"
-            return
-        fi
-    done
+    local candidate=""
+    case "$(uname -s)" in
+        Linux*)                   candidate="$base/linux_x64/clang-format" ;;
+        Darwin*)                  candidate="$base/darwin_x64/clang-format" ;;
+        MINGW*|MSYS*|CYGWIN*|Windows_NT) candidate="$base/win32/clang-format.exe" ;;
+    esac
+
+    if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+        echo "$candidate"
+        return
+    fi
 
     # Fall back to whatever is installed, accepting the version risk.
     if command -v clang-format >/dev/null 2>&1; then
