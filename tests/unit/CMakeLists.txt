@@ -50,6 +50,16 @@ tc_add_test(tc_planning_tests
         tc::planning
 )
 
+tc_add_test(tc_state_tests
+    LABEL   unit
+    SOURCES
+        state/robot_state_update_test.cpp
+        state/stall_policy_test.cpp
+        state/waiting_test.cpp
+    LIBS
+        tc::state
+)
+
 tc_add_test(tc_infrastructure_tests
     LABEL   unit
     SOURCES

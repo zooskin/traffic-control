@@ -14,10 +14,10 @@
 add_subdirectory(core)
 add_subdirectory(domain)
 add_subdirectory(map)
+add_subdirectory(state)
 add_subdirectory(planning)
 add_subdirectory(infrastructure)
 
-# Phase 4   : state
 # Phase 5   : task
 # Phase 6   : reservation
 # Phase 8   : priority

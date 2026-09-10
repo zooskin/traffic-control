@@ -272,6 +272,50 @@ heuristic이 실제 남은 비용을 과대평가한다.
 있으므로 맵 검증 오류로 두지 않았다). `geometry_supports_distance_heuristic`
 으로 확인하고, 실패하는 맵은 `ZeroHeuristic`으로 계획한다.
 
+### D-009. 로봇이 보고한 것과 우리가 결정한 것을 섞지 않는다
+
+`04 §7`은 WAITING 상태의 Robot이 `waiting_since` / `waiting_resource` /
+`waiting_reason`을 저장한다고 하고, `§20`의 `RobotStateUpdate`는 Robot이
+`status`를 보낸다고 한다. 두 문장을 그대로 구현하면 Robot이 자기 교통 상태를
+스스로 선언하고 그 근거까지 관측값에 섞인다.
+
+**결정 1: Robot은 자기 교통 상태를 명명할 수 없다.**
+
+D-001의 9개 상태 중 `reserving` / `waiting` / `replanning`은 교통 제어가
+**내린 결정**이지 Robot이 관측할 수 있는 사실이 아니다. Robot이 `waiting`을
+보고한다는 것은 우리가 무언가를 승인했다고 주장하는 것이다. 이를 받아들이면
+오작동하거나 재전송된 메시지가 발급된 적 없는 예약을 컨트롤러에 믿게 만들 수
+있다.
+
+`is_robot_reportable()`이 이 세 상태를 거부한다. 조용히 무시하거나 다른
+값으로 고치지 않고 **거부**한다 — 말이 안 되는 값을 보내는 fleet을 숨기면
+안 된다.
+
+**결정 2: `waiting_*`는 `RobotStateSnapshot`에 넣지 않는다.**
+
+Snapshot은 *관측된 것*이다. Waiting reason은 우리가 *결론 내린 것*이다.
+둘을 한 구조체에 넣으면
+
+- 동일한 관측 두 개가 우리가 그것에 대해 내린 판단 때문에 서로 다르게
+  비교된다(`operator==`가 defaulted이고 version 비교에 쓰인다).
+- fleet이 말한 것과 우리가 추론한 것을 사후에 구분할 방법이 없어진다.
+
+`state::WaitingContext`로 분리하고 StateManager가 보유한다. `23 §22`가
+RobotState의 소유자를 StateManager로 지정한 것과 같은 자리다.
+
+**결정 3: `04 §5`의 11개 status는 D-001이 대체한다.**
+
+`04 §5`는 IDLE / ASSIGNED / PLANNING / MOVING / WAITING / BLOCKED /
+REPLANNING / RECOVERY / ARRIVED / FAILED / EMERGENCY_STOP를 나열한다.
+D-001이 이미 9개로 확정했고, `EMERGENCY_STOP`은 CLAUDE.md의 Safety 경계
+바깥이다(Emergency Stop / Protective Stop / Safety Zone / Safety Interlock은
+별도 시스템의 책임). `ASSIGNED`/`PLANNING`/`ARRIVED`는 Task 상태이지
+Robot의 교통 상태가 아니므로 Phase 5의 TaskStatus가 담는다.
+
+다만 안전 시스템이 Robot을 멈춘 사실 자체는 기록한다 —
+`WaitingReason::safety_stop`. 우리 타이머가 그 정지를 교통 문제로 오인하지
+않게 하기 위해서다. 그 이상은 하지 않는다.
+
 ### D-004. 정책 충돌 시 우선순위
 
 21 §4의 우선순위를 문서에 대응시킨다.

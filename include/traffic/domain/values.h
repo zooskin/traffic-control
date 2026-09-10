@@ -34,6 +34,14 @@ struct Position {
     [[nodiscard]] friend bool operator==(const Position&, const Position&) = default;
 };
 
+/// Straight-line distance between two points, in metres.
+///
+/// Lives here rather than in whichever module first wanted it, because more
+/// than one does: the planner's heuristic measures how far the goal is, and
+/// the state manager measures whether a robot has moved at all. Two copies of
+/// this would be two chances to disagree about whether `z` counts.
+[[nodiscard]] double distance(const Position& from, const Position& to) noexcept;
+
 /// Planar velocity, in metres per second.
 struct Velocity {
     double vx{0.0};

@@ -14,10 +14,10 @@ constexpr double kGeometryTolerance = 1e-6;
 }  // namespace
 
 double euclidean_distance(const domain::Position& from, const domain::Position& to) noexcept {
-    const double dx = to.x - from.x;
-    const double dy = to.y - from.y;
-    const double dz = to.z - from.z;
-    return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+    // Kept as a name of its own because docs/05_GLOBAL_ROUTING.md §5 pairs it
+    // with the Manhattan variant below, but there is one implementation of the
+    // maths and it lives with Position.
+    return domain::distance(from, to);
 }
 
 double manhattan_distance(const domain::Position& from, const domain::Position& to) noexcept {
