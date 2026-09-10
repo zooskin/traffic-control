@@ -15,11 +15,11 @@ add_subdirectory(core)
 add_subdirectory(domain)
 add_subdirectory(map)
 add_subdirectory(state)
+add_subdirectory(task)
 add_subdirectory(planning)
+add_subdirectory(reservation)
 add_subdirectory(infrastructure)
 
-# Phase 5   : task
-# Phase 6   : reservation
 # Phase 8   : priority
 # Phase 9-10: deadlock
 # Phase 11  : controller

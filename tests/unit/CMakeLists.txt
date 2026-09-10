@@ -63,6 +63,28 @@ tc_add_test(tc_state_tests
         tc::state
 )
 
+tc_add_test(tc_task_tests
+    LABEL   unit
+    SOURCES
+        task/task_assignment_test.cpp
+        task/task_change_test.cpp
+        task/task_manager_test.cpp
+    LIBS
+        tc::task
+)
+
+tc_add_test(tc_reservation_tests
+    LABEL   unit
+    SOURCES
+        reservation/conflict_detector_test.cpp
+        reservation/conflict_rules_test.cpp
+        reservation/reservation_manager_test.cpp
+        reservation/reservation_policy_test.cpp
+        reservation/reservation_table_test.cpp
+    LIBS
+        tc::reservation
+)
+
 tc_add_test(tc_infrastructure_tests
     LABEL   unit
     SOURCES
