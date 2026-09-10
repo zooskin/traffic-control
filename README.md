@@ -5,7 +5,9 @@
 전제로 한다.
 
 > **현재 상태: Phase 0 (Repository Setup).**
-> 로컬 빌드는 아직 검증되지 않았다 — 아래 Setup 참조.
+> 이 머신에는 C++ 툴체인이 없어 빌드는 CI에서 검증한다. 저장소를 원격에
+> push하면 Actions가 GCC / Clang / MSVC 3종으로 빌드·테스트한다.
+> 로컬에서도 빌드하려면 아래 Setup을 따른다.
 
 ---
 

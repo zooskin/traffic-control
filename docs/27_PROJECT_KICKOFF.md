@@ -87,7 +87,8 @@ Production Gate는 `docs/archive/18_IMPLEMENTATION_PLAN.md` §30의 조건을
 - [x] GitHub Actions CI (Linux GCC/Clang + Windows MSVC + sanitizer job)
 - [x] Strong ID 타입 + `IClock` / `SystemClock` / `SimulationClock`
 - [x] 로깅 초기화
-- [ ] **로컬 빌드 검증** ← 툴체인 설치 필요 (§6)
+- [x] 정적 검증 (프리셋·워크플로 파싱, 경로 정합성, 코드 리뷰)
+- [ ] **CI 빌드 통과** ← 원격 저장소 push 필요 (§6)
 
 완료 조건 (22 Phase 0): Build 성공 / Unit Test 실행 / Logging 동작 / CI 동작
 
@@ -134,20 +135,49 @@ Production Gate는 `docs/archive/18_IMPLEMENTATION_PLAN.md` §30의 조건을
 
 ---
 
-## 6. 미결 사항: 로컬 툴체인
+## 6. 미결 사항: 빌드 검증
 
-착수 시점에 개발 머신에 C++ 툴체인이 없다. git만 설치되어 있다.
+착수 시점에 개발 머신에 C++ 툴체인이 없다.
 
 ```
 git            2.55.0     OK
+node           24.20.0    OK
 cmake          없음
 컴파일러        없음 (MSVC / GCC / Clang 모두)
 clang-format   없음
 python         없음 (Store 스텁만 존재)
 ```
 
-Phase 0 스캐폴딩은 완료했으나 **로컬 빌드는 검증되지 않았다.** 설치 후
-`cmake --preset dev && cmake --build --preset dev && ctest --preset dev`가
-통과하는지 확인해야 Phase 0을 닫을 수 있다.
+**결정: 로컬에 툴체인을 설치하지 않고 CI에서 검증한다.**
 
-설치 명령은 `README.md` 의 Setup 절 참조.
+따라서 `.github/workflows/ci.yml` 이 이 프로젝트를 컴파일하는 유일한
+수단이다. 이 제약이 두 가지를 바꾼다.
+
+1. **CI는 첫 push에서 통과해야 한다.** 로컬에서 고쳐보고 push하는 반복이
+   불가능하므로, CI 설정 자체의 오류가 실제 컴파일 오류를 가리면 진단이
+   어렵다. clang-tidy의 `bugprone-exception-escape` / `performance-enum-size`
+   를 끈 이유가 이것이다 — 스타일 문제로 빨간 빌드를 만들면 안 된다.
+2. **정적 검증을 최대한 당겨서 했다.** 컴파일러 없이 가능한 확인:
+
+| 확인 | 결과 |
+|---|---|
+| `CMakePresets.json` 파싱 | OK (configure 5, build 4, test 6) |
+| `ci.yml` YAML 파싱 | OK (job 4개) |
+| `bash -n` 셸 스크립트 | OK |
+| CMake가 참조하는 소스·헤더 존재 | 11개 전부 존재 |
+| 수동 코드 리뷰 | 결함 4건 발견·수정 (커밋 `e01661f`) |
+
+### 남은 절차
+
+원격 저장소가 없고 이 머신에 `gh` CLI가 없으며 git 자격증명이 브라우저
+인증(GCM)이라, 저장소 생성과 push는 사람이 해야 한다.
+
+```bash
+gh repo create traffic-control --private --source=. --push
+# 또는 GitHub 웹에서 저장소를 만든 뒤
+git remote add origin <URL>
+git push -u origin main
+```
+
+push 후 Actions 탭에서 `format` / `build (3종)` / `sanitizers (2종)` /
+`static-analysis` 가 모두 통과하면 **Phase 0 완료**다.
