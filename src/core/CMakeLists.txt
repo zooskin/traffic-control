@@ -19,6 +19,7 @@ target_sources(tc_core PUBLIC
     FILES
         "${PROJECT_SOURCE_DIR}/include/traffic/core/clock.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/core/ids.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/core/result.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/core/strong_id.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/core/time.h"
 )

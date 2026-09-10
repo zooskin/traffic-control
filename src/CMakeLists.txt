@@ -12,9 +12,9 @@
 # phase begins; empty directories are intentional placeholders.
 
 add_subdirectory(core)
+add_subdirectory(domain)
 add_subdirectory(infrastructure)
 
-# Phase 1+  : domain
 # Phase 2   : map
 # Phase 3   : planning
 # Phase 4   : state

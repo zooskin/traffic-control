@@ -156,6 +156,34 @@ Phase 17  Production Hardening
 WHCA\*/PIBT/ECBS는 Phase 15 이후 15_ALGORITHM_BENCHMARK 기준으로 도입 여부를
 결정한다. `IRoutePlanner` 뒤에 숨기므로 교체 비용은 낮다.
 
+### D-005. Robot과 RobotState를 분리한다
+
+`24 §3`은 `Robot`이 `state` / `current_task` / `current_route`를 갖는다고
+하고, `§4`의 `RobotState`도 같은 필드를 갖는다. 두 곳에 두면 어느 쪽이
+진실인지 알 수 없다.
+
+한편 `23 §22`는 소유권을 명시한다.
+
+```
+RobotState -> StateManager
+Task       -> TaskManager
+```
+
+**결정: 다음과 같이 분리한다.**
+
+| 타입 | 내용 | 성격 |
+|---|---|---|
+| `Robot` | `robot_id`, `capabilities` | 정적 등록 정보 |
+| `RobotStateSnapshot` | `§4`의 전 필드 (position, velocity, current_node, current_edge, current_task, current_route, state, timestamp, state_version) | 시점 관측값, StateManager 소유 |
+
+근거: 로봇의 동적 상태는 초당 수십 회 갱신된다. 같은 필드를 두 객체에
+두면 반드시 갈라지고, 그 시점에 어느 쪽으로 교통 판단을 했는지 추적할 수
+없게 된다.
+
+**명명:** `§4`의 엔티티 이름이 `RobotState`인데 그 안의 `state` 필드 타입도
+`RobotState`라 충돌한다. enum이 `RobotState`(D-001, CLAUDE.md 확정),
+스냅샷 엔티티가 `RobotStateSnapshot`이다.
+
 ### D-004. 정책 충돌 시 우선순위
 
 21 §4의 우선순위를 문서에 대응시킨다.
