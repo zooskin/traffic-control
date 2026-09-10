@@ -187,13 +187,135 @@ PlanningRequest/Result → Phase 3, Deadlock/HumanBlockage → Phase 9.
 
 **기록한 결정** — D-006 (NodeType은 `03` 어휘), D-007 (travel_time은 파생값).
 
-### Week 4 — Phase 3: A\* + 수직 슬라이스
+### Week 4 — Phase 3: Route Planning (A\*) ✅ 완료
 
-- `IRoutePlanner` 인터페이스 + `AStarPlanner`
-- 결정론적 tie-breaking (같은 비용이면 항상 같은 경로)
-- 최소 시뮬레이션 루프: 10대, 단일 corridor, 예약 없음
-- KPI 수집: 충돌 수, 평균 이동 시간, 계획 지연
-- 동일 seed 재실행 시 동일 결과 확인
+3개 배치, 단위 테스트 254 → **407개**. 5개 환경(linux-gcc, linux-clang,
+windows-msvc, asan, tsan) 전부 통과.
+
+| 배치 | 커밋 | 내용 |
+|---|---|---|
+| 1 | `a016b45` | RouteRequest/Response, PlanningRequest/Result, Constraints, Cost Model |
+| 2 | `03d7e47` | Heuristic, Route Validation, Route Stability |
+| 3 | `380008e` | AStarPlanner, SequentialFleetPlanner, Planning Record |
+
+**`05 §24` Acceptance Criteria**
+
+| 항목 | 상태 |
+|---|---|
+| A\* 구현 | ✅ `AStarPlanner` |
+| Dijkstra fallback | ✅ `ZeroHeuristic` 주입 |
+| Dynamic edge cost | ✅ `edge_cost` + `CostWeights` |
+| Congestion cost | ✅ `ITrafficConditions::congestion` |
+| Expected waiting cost | ✅ `ITrafficConditions::expected_wait` |
+| Blocked edge 지원 | ✅ Edge / Node / Resource 3종 |
+| Route validation | ✅ `validate_route`, 11종 defect |
+| Replanning | ✅ `replan_route` + 안정화 정책 |
+| Deterministic result | ✅ tie-break 3단 + 결정성 테스트 |
+| Performance benchmark | ⏳ Phase 15 (`max_expansions`로 상한만 확보) |
+| Planning logging | ✅ `PlanningRecord` (§23의 10개 필드) |
+
+`§25`가 요구한 테스트 12종 중 11종 구현. `test_route_hysteresis`까지 포함하며
+`test_dijkstra`는 A\*와의 비용 일치 검증으로 구현했다.
+
+**두 계층의 인터페이스**
+
+`05 §20`은 `plan_route(request)`(단일 로봇)를, `24 §20~21`은
+`PlanningRequest`/`PlanningResult`(배치)를 정의한다. 충돌이 아니라 호출자가
+다르다. `IRoutePlanner`와 `IFleetPlanner`로 나누고
+`SequentialFleetPlanner`가 다리를 놓는다.
+
+이유: PIBT/ECBS는 배치를 동시에 푸는 알고리즘이라 단일 요청의 루프로
+표현할 수 없다. Traffic Controller가 단일 인터페이스를 직접 호출하면
+알고리즘 교체 시 Controller를 다시 써야 하고, 그건 CLAUDE.md의 Algorithm
+Isolation이 금지하는 상태다.
+
+**A\*가 책임지는 세 가지**
+
+*주행 가능한 경로만 반환한다.* 확장은 `incident_edges`가 아니라
+`traversable_edges`로 한다. 차이는 일방통행 corridor를 역주행하는 경로다 —
+연결되어 있고, 그럴듯하고, 첫 예약에서 거부된다.
+
+*같은 입력이면 같은 경로다*(`§22`). 깨질 수 있는 지점 셋을 각각 고정했다:
+인접 목록은 Edge 순서, open set 동점은 node_id, 같은 비용의 경로는 edge_id.
+unordered 컨테이너를 순회하는 곳이 없다. 대칭 테스트 맵은 양쪽 경로가 정확히
+40으로 같아서 tie-breaker 외에는 아무것도 결과를 결정하지 않는다.
+
+*지금이 언제인지 모른다.* 모든 시각은 요청으로 들어온다. 주입된 clock은
+경로에 시각을 찍고 탐색 시간을 재는 데만 쓴다. `SimulationClock` 아래서
+그 측정은 0이고, 그게 맞다 — 빠른 기계와 느린 기계에서 시나리오가 똑같이
+재생되어야 한다.
+
+**Heuristic — `05 §5`의 내부 충돌**
+
+`§5`는 Manhattan을 기본으로 제시하면서 같은 절에서 admissible을 요구한다.
+일반 그래프에서 두 요구는 양립하지 않는다. Euclidean을 기본으로 하고
+Manhattan은 격자 맵용으로 남겼다. 근거는 D-008.
+
+과대평가하는 heuristic은 A\*를 실패시키지 않는다. 최단이 아닌 경로를 아무
+신호 없이 반환한다. 그래서 `min_cost_per_metre`가 실제 Edge 비용을 절대
+넘지 않는다는 것을 테스트로 직접 단언한다.
+
+전제 하나가 남아 있다. 확장이 끝난 노드를 다시 열지 않는 최적화는
+heuristic이 admissible한 것만으로는 부족하고 **consistent**해야 한다.
+거리 기반 heuristic은 모든 Edge의 `length`가 양 끝점 사이 직선거리 이상일 때
+consistent하다. `geometry_supports_distance_heuristic`이 이를 확인하고,
+실패하는 맵은 `ZeroHeuristic`으로 계획한다.
+
+**Cost weight 기본값**
+
+`distance = 1.0`, 나머지 전부 0. `§6`이 weight를 configuration이라 했고
+`15_ALGORITHM_BENCHMARK`는 Phase 15다. 측정 대상이 없는 상태에서 만든
+숫자는 나중의 튜닝이 상대해야 할 근거 없는 값이 된다.
+
+**Congestion / Waiting이 Reservation을 참조하지 않는 이유**
+
+두 값 모두 예약 테이블에서 나오는데 Reservation은 Phase 6이고 `12 §16`의
+의존 순서에서 planning보다 위다. `ITrafficConditions` 인터페이스로 받아서
+방향을 뒤집지 않는다. `§19`가 예고한 reservation-aware planning이 도착할
+자리도 여기다.
+
+두 값은 요청의 `current_time`에 한 번만 읽는다(`§10`의 정의 그대로).
+탐색 중 Edge 비용이 고정되므로 A\*의 최적성이 유지되고, 같은 입력이 같은
+경로를 낳는다.
+
+**Route Stability — 브레이크가 둘인 이유**(`§16~17`)
+
+개선 임계값은 반올림 수준의 변화로 경로가 바뀌는 것을 막는다.
+Hold time은 진동을 막는다 — 그리고 진동을 볼 수 있는 것은 hold time뿐이다.
+A → B → A 순환의 매 단계는 그 시점에서 진짜 개선이기 때문이다.
+
+현재 경로가 주행 불가능해지면 둘 다 우회한다. 폐쇄된 corridor를 지나는
+경로보다 대안이 10% 싼지 묻는 것은 잘못된 질문이다.
+
+**`max_expansions`는 시간이 아니라 작업량 상한**
+
+탐색 중간에 실제 시계를 읽으면 같은 시나리오의 두 실행이 갈라진다. 고정된
+맵에서 확장 수 상한이 P99 지연 KPI를 탐색에 강제할 수 있는 형태다.
+`NO_ROUTE`와 구분해서 보고한다 — 경로가 존재할 수도 있고, 다만 planner가
+충분히 멀리 볼 수 없었을 뿐이다.
+
+**Logging은 데이터로 남긴다**(`§23`)
+
+`PlanningRecord`는 포맷 문자열이 아니라 구조체다. planning이 infrastructure에
+의존하면 안 되고(CLAUDE.md), "옛 경로를 유지한 이유를 기록했는가"는 테스트가
+되지만 "올바른 줄을 출력했는가"는 되지 않는다.
+
+**테스트가 잡은 버그**
+
+Batch 2 테스트가 `is_traversable_from`이 비활성 Edge에도 false를 반환한다는
+사실을 드러냈다. 검증기가 폐쇄된 corridor를 전부 일방통행 위반으로
+보고하고 있었다 — 읽는 사람을 있지도 않은 방향 버그로 보내는 진단이다.
+Batch 3에서 고쳤다.
+
+**기록한 결정** — D-008 (Heuristic 기본값은 Euclidean, Dijkstra는 별도
+알고리즘이 아님).
+
+**남긴 것** — 착수 시점의 Week 4 스케치에는 "최소 시뮬레이션 루프(10대,
+단일 corridor)"와 "KPI 수집"이 있었다. 둘 다 확정 Phase 순서(D-003)에서는
+Phase 13(Simulation)과 Phase 15(Performance)에 속한다. 로봇을 움직이려면
+Robot State(Phase 4)와 Reservation(Phase 6)이 먼저 있어야 하므로 지금
+만들면 두 번 만들게 된다. `05 §24`의 Performance benchmark 항목도 같은
+이유로 Phase 15에 남긴다.
 
 ---
 
