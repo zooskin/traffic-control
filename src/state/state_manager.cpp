@@ -8,6 +8,32 @@ namespace {
 using RegisterStatus = core::Status<RegistrationRejection>;
 using UpdateStatus = core::Status<UpdateRejection>;
 
+/// The change a caller should hear about, or nothing when the state stayed
+/// put.
+///
+/// Self-transitions are not changes. Telemetry arrives several times a second
+/// and nearly all of it reports the same state as last time; emitting a change
+/// for each would drown the ones that matter.
+[[nodiscard]] std::optional<RobotStateChange> change_if_moved(const RobotRecord& record,
+                                                              domain::RobotState previous,
+                                                              core::TimePoint at) {
+    if (record.snapshot.state == previous) {
+        return std::nullopt;
+    }
+
+    RobotStateChange change;
+    change.robot_id = record.snapshot.robot_id;
+    change.from = previous;
+    change.to = record.snapshot.state;
+    change.at = at;
+    change.version = record.snapshot.version;
+    if (record.waiting.has_value()) {
+        change.reason = record.waiting->reason;
+        change.resource = record.waiting->resource;
+    }
+    return change;
+}
+
 }  // namespace
 
 std::string_view to_string(RegistrationRejection rejection) noexcept {
@@ -70,14 +96,14 @@ std::size_t StateManager::robot_count() const noexcept {
 
 // -------------------------------------------------------------------- update
 
-core::Status<UpdateRejection> StateManager::apply(const RobotStateUpdate& update) {
+UpdateOutcome StateManager::apply(const RobotStateUpdate& update) {
     if (const auto shape = validate(update); !shape.has_value()) {
-        return shape;
+        return UpdateOutcome::failure(shape.error());
     }
 
     RobotRecord* record = find(update.robot_id);
     if (record == nullptr) {
-        return UpdateStatus::failure(UpdateRejection::unknown_robot);
+        return UpdateOutcome::failure(UpdateRejection::unknown_robot);
     }
 
     // Equal timestamps are accepted: a robot may send position and battery in
@@ -85,12 +111,13 @@ core::Status<UpdateRejection> StateManager::apply(const RobotStateUpdate& update
     // applying them would move the fleet's picture backwards, and a decision
     // taken on the result would describe a world that has already changed.
     if (update.timestamp < record->snapshot.observed_at) {
-        return UpdateStatus::failure(UpdateRejection::stale_timestamp);
+        return UpdateOutcome::failure(UpdateRejection::stale_timestamp);
     }
 
-    const domain::RobotState next = update.reported_state.value_or(record->snapshot.state);
-    if (!domain::is_transition_allowed(record->snapshot.state, next)) {
-        return UpdateStatus::failure(UpdateRejection::invalid_transition);
+    const domain::RobotState previous = record->snapshot.state;
+    const domain::RobotState next = update.reported_state.value_or(previous);
+    if (!domain::is_transition_allowed(previous, next)) {
+        return UpdateOutcome::failure(UpdateRejection::invalid_transition);
     }
 
     // The mark only advances when the robot actually got somewhere. Advancing
@@ -121,19 +148,21 @@ core::Status<UpdateRejection> StateManager::apply(const RobotStateUpdate& update
     }
 
     touch(*record, update.timestamp);
-    return UpdateStatus::success();
+    return UpdateOutcome::success(change_if_moved(*record, previous, update.timestamp));
 }
 
-core::Status<UpdateRejection> StateManager::assign_state(const core::RobotId& robot_id,
-                                                         domain::RobotState state,
-                                                         core::TimePoint at,
-                                                         std::optional<WaitingContext> waiting) {
+UpdateOutcome StateManager::assign_state(const core::RobotId& robot_id,
+                                         domain::RobotState state,
+                                         core::TimePoint at,
+                                         std::optional<WaitingContext> waiting) {
     RobotRecord* record = find(robot_id);
     if (record == nullptr) {
-        return UpdateStatus::failure(UpdateRejection::unknown_robot);
+        return UpdateOutcome::failure(UpdateRejection::unknown_robot);
     }
-    if (!domain::is_transition_allowed(record->snapshot.state, state)) {
-        return UpdateStatus::failure(UpdateRejection::invalid_transition);
+
+    const domain::RobotState previous = record->snapshot.state;
+    if (!domain::is_transition_allowed(previous, state)) {
+        return UpdateOutcome::failure(UpdateRejection::invalid_transition);
     }
 
     // A hold with no reason cannot be explained afterwards, and a reason on a
@@ -142,7 +171,7 @@ core::Status<UpdateRejection> StateManager::assign_state(const core::RobotId& ro
     // that the caller had the wrong idea.
     const bool wants_waiting = state == domain::RobotState::waiting;
     if (wants_waiting != waiting.has_value()) {
-        return UpdateStatus::failure(UpdateRejection::waiting_reason_mismatch);
+        return UpdateOutcome::failure(UpdateRejection::waiting_reason_mismatch);
     }
 
     record->snapshot.state = state;
@@ -150,7 +179,27 @@ core::Status<UpdateRejection> StateManager::assign_state(const core::RobotId& ro
     record->waiting = std::move(waiting);
 
     touch(*record, at);
+    return UpdateOutcome::success(change_if_moved(*record, previous, at));
+}
+
+core::Status<UpdateRejection> StateManager::record_command(const RobotCommand& command) {
+    RobotRecord* record = find(command.robot_id);
+    if (record == nullptr) {
+        return UpdateStatus::failure(UpdateRejection::unknown_robot);
+    }
+
+    record->last_command = command.id;
+    touch(*record, command.created_at);
     return UpdateStatus::success();
+}
+
+bool StateManager::is_command_outstanding(const core::RobotId& robot_id) const {
+    const RobotRecord* found = find(robot_id);
+    if (found == nullptr || !found->last_command.has_value()) {
+        // Nothing outstanding is not the same as something ignored.
+        return false;
+    }
+    return found->last_ack_command != found->last_command;
 }
 
 core::Status<UpdateRejection> StateManager::assign_route(const core::RobotId& robot_id,

@@ -53,7 +53,9 @@ tc_add_test(tc_planning_tests
 tc_add_test(tc_state_tests
     LABEL   unit
     SOURCES
+        state/robot_command_test.cpp
         state/robot_state_update_test.cpp
+        state/state_change_test.cpp
         state/state_manager_test.cpp
         state/stall_policy_test.cpp
         state/waiting_test.cpp

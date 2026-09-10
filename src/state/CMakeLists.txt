@@ -9,8 +9,10 @@
 # that could answer it would start deciding where robots are allowed to be.
 
 add_library(tc_state
+    robot_command.cpp
     robot_state_update.cpp
     stall_policy.cpp
+    state_change.cpp
     state_manager.cpp
     waiting.cpp
 )
@@ -24,8 +26,10 @@ target_sources(tc_state PUBLIC
     FILE_SET HEADERS
     BASE_DIRS "${PROJECT_SOURCE_DIR}/include"
     FILES
+        "${PROJECT_SOURCE_DIR}/include/traffic/state/robot_command.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/state/robot_state_update.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/state/stall_policy.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/state/state_change.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/state/state_manager.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/state/waiting.h"
 )

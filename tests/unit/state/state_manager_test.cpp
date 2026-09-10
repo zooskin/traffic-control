@@ -21,6 +21,8 @@
 #include "traffic/domain/robot.h"
 #include "traffic/domain/robot_state.h"
 #include "traffic/domain/values.h"
+#include "traffic/state/robot_command.h"
+#include "traffic/state/state_change.h"
 
 namespace traffic::state {
 namespace {
@@ -636,6 +638,174 @@ TEST(StateProgress, state_progress_of_an_unregistered_robot_is_zero) {
     const StateManager manager;
 
     EXPECT_EQ(manager.time_since_progress(RobotId{"R01"}, at(100)), core::Duration::zero());
+}
+
+// ============================================================ state changes
+
+TEST(StateChange, state_change_is_returned_when_the_state_moves) {
+    // docs/04_ROBOT_TASK_MODEL.md §19. Returned rather than published: a
+    // manager with a listener registry would make the order those listeners
+    // ran in part of the system's behaviour.
+    StateManager manager;
+    register_two(manager);
+
+    RobotStateUpdate update = telemetry("R01", 5, Position{1.0, 0.0, 0.0});
+    update.reported_state = RobotState::moving;
+
+    const auto outcome = manager.apply(update);
+
+    ASSERT_TRUE(outcome.has_value());
+    ASSERT_TRUE(outcome.value().has_value());
+    EXPECT_EQ(outcome.value()->from, RobotState::idle);
+    EXPECT_EQ(outcome.value()->to, RobotState::moving);
+    EXPECT_EQ(outcome.value()->robot_id, RobotId{"R01"});
+    EXPECT_EQ(outcome.value()->at, at(5));
+    EXPECT_EQ(outcome.value()->version, manager.version());
+}
+
+TEST(StateChange, state_change_is_absent_when_nothing_moved) {
+    // Telemetry arrives several times a second and nearly all of it reports
+    // the same state as last time. A change for each would drown the ones that
+    // matter.
+    StateManager manager;
+    register_two(manager);
+
+    const auto outcome = manager.apply(telemetry("R01", 5, Position{1.0, 0.0, 0.0}));
+
+    ASSERT_TRUE(outcome.has_value());
+    EXPECT_FALSE(outcome.value().has_value());
+}
+
+TEST(StateChange, state_change_carries_the_waiting_reason) {
+    // §19's example: robot_id, old_state, new_state, reason, resource_id.
+    StateManager manager;
+    register_two(manager);
+    set_moving(manager, "R01", 2);
+
+    const auto outcome =
+        manager.assign_state(RobotId{"R01"}, RobotState::waiting, at(3), held_on("CORRIDOR-01", 3));
+
+    ASSERT_TRUE(outcome.has_value());
+    ASSERT_TRUE(outcome.value().has_value());
+    EXPECT_EQ(outcome.value()->reason, WaitingReason::resource_occupied);
+    EXPECT_EQ(outcome.value()->resource, core::ResourceId{"CORRIDOR-01"});
+    EXPECT_TRUE(is_stall_onset(*outcome.value()));
+}
+
+TEST(StateChange, state_change_reports_a_recovery) {
+    StateManager manager;
+    register_two(manager);
+    set_moving(manager, "R01", 2);
+    ASSERT_TRUE(
+        manager.assign_state(RobotId{"R01"}, RobotState::waiting, at(3), held_on("CORRIDOR-01", 3))
+            .has_value());
+
+    RobotStateUpdate resumed = telemetry("R01", 8, Position{1.0, 0.0, 0.0});
+    resumed.reported_state = RobotState::moving;
+
+    const auto outcome = manager.apply(resumed);
+
+    ASSERT_TRUE(outcome.has_value());
+    ASSERT_TRUE(outcome.value().has_value());
+    EXPECT_TRUE(is_recovery(*outcome.value()));
+    EXPECT_FALSE(outcome.value()->reason.has_value());
+}
+
+// ================================================================= commands
+
+TEST(StateCommand, state_command_records_what_was_sent) {
+    // Recording, not sending. Delivery is the adapter's job; what belongs to
+    // the robot's state is which instruction it is expected to be acting on.
+    StateManager manager;
+    register_two(manager);
+
+    const auto command = make_robot_command(core::CommandId{"CMD-1"},
+                                            RobotId{"R01"},
+                                            CommandAction::move,
+                                            core::RouteId{"ROUTE-1"},
+                                            std::nullopt,
+                                            at(4));
+    ASSERT_TRUE(command.has_value());
+
+    ASSERT_TRUE(manager.record_command(command.value()).has_value());
+
+    EXPECT_EQ(manager.record(RobotId{"R01"})->last_command, core::CommandId{"CMD-1"});
+}
+
+TEST(StateCommand, state_command_is_outstanding_until_the_robot_acknowledges_it) {
+    // docs/04_ROBOT_TASK_MODEL.md §22: this is how "it has not started yet" is
+    // told from "it did not hear us". The two look identical from outside and
+    // want opposite responses.
+    StateManager manager;
+    register_two(manager);
+
+    const auto command = make_robot_command(core::CommandId{"CMD-1"},
+                                            RobotId{"R01"},
+                                            CommandAction::stop,
+                                            std::nullopt,
+                                            std::nullopt,
+                                            at(4));
+    ASSERT_TRUE(command.has_value());
+    ASSERT_TRUE(manager.record_command(command.value()).has_value());
+
+    EXPECT_TRUE(manager.is_command_outstanding(RobotId{"R01"}));
+
+    RobotStateUpdate acked = telemetry("R01", 6, Position{});
+    acked.last_ack_command_id = core::CommandId{"CMD-1"};
+    ASSERT_TRUE(manager.apply(acked).has_value());
+
+    EXPECT_FALSE(manager.is_command_outstanding(RobotId{"R01"}));
+}
+
+TEST(StateCommand, state_command_acknowledging_an_older_one_leaves_it_outstanding) {
+    StateManager manager;
+    register_two(manager);
+
+    const auto first = make_robot_command(core::CommandId{"CMD-1"},
+                                          RobotId{"R01"},
+                                          CommandAction::stop,
+                                          std::nullopt,
+                                          std::nullopt,
+                                          at(4));
+    const auto second = make_robot_command(core::CommandId{"CMD-2"},
+                                           RobotId{"R01"},
+                                           CommandAction::resume,
+                                           std::nullopt,
+                                           std::nullopt,
+                                           at(6));
+    ASSERT_TRUE(first.has_value());
+    ASSERT_TRUE(second.has_value());
+    ASSERT_TRUE(manager.record_command(first.value()).has_value());
+    ASSERT_TRUE(manager.record_command(second.value()).has_value());
+
+    RobotStateUpdate acked = telemetry("R01", 7, Position{});
+    acked.last_ack_command_id = core::CommandId{"CMD-1"};
+    ASSERT_TRUE(manager.apply(acked).has_value());
+
+    EXPECT_TRUE(manager.is_command_outstanding(RobotId{"R01"}));
+}
+
+TEST(StateCommand, state_command_nothing_sent_is_not_something_ignored) {
+    StateManager manager;
+    register_two(manager);
+
+    EXPECT_FALSE(manager.is_command_outstanding(RobotId{"R01"}));
+    EXPECT_FALSE(manager.is_command_outstanding(RobotId{"R99"}));
+}
+
+TEST(StateCommand, state_command_for_an_unregistered_robot_is_refused) {
+    StateManager manager;
+    register_two(manager);
+
+    const auto command = make_robot_command(core::CommandId{"CMD-1"},
+                                            RobotId{"R99"},
+                                            CommandAction::stop,
+                                            std::nullopt,
+                                            std::nullopt,
+                                            at(4));
+    ASSERT_TRUE(command.has_value());
+
+    EXPECT_EQ(manager.record_command(command.value()).error(), UpdateRejection::unknown_robot);
 }
 
 }  // namespace

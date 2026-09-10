@@ -40,8 +40,10 @@
 #include "traffic/domain/robot.h"
 #include "traffic/domain/robot_state.h"
 #include "traffic/domain/values.h"
+#include "traffic/state/robot_command.h"
 #include "traffic/state/robot_state_update.h"
 #include "traffic/state/stall_policy.h"
+#include "traffic/state/state_change.h"
 #include "traffic/state/waiting.h"
 
 namespace traffic::state {
@@ -57,6 +59,15 @@ enum class RegistrationRejection {
 };
 
 [[nodiscard]] std::string_view to_string(RegistrationRejection rejection) noexcept;
+
+/// What an accepted update produced.
+///
+/// The state change when there was one, and nothing when the update was
+/// applied without moving the robot — which is most of them, since position
+/// and battery change constantly and the state rarely does. Returning it
+/// rather than publishing it keeps the manager free of a listener registry
+/// whose ordering would quietly become part of the system's behaviour.
+using UpdateOutcome = core::Result<std::optional<RobotStateChange>, UpdateRejection>;
 
 /// Everything the manager holds about one robot.
 ///
@@ -76,8 +87,13 @@ struct RobotRecord {
     /// The last place it was seen to be making progress.
     ProgressMark progress;
 
-    /// The last command the robot acknowledged.
+    /// The last command we sent it, and the last one it confirmed receiving.
     /// docs/04_ROBOT_TASK_MODEL.md §22.
+    ///
+    /// The pair is how "it has not started yet" is told from "it did not hear
+    /// us", which are the same picture from outside and want opposite
+    /// responses.
+    std::optional<core::CommandId> last_command;
     std::optional<core::CommandId> last_ack_command;
 
     /// When *we* last touched this record, as opposed to when the robot took
@@ -118,18 +134,32 @@ public:
     // --------------------------------------------------------------- update
 
     /// Applies telemetry from a robot. docs/04_ROBOT_TASK_MODEL.md §20.
-    [[nodiscard]] virtual core::Status<UpdateRejection> apply(const RobotStateUpdate& update) = 0;
+    [[nodiscard]] virtual UpdateOutcome apply(const RobotStateUpdate& update) = 0;
 
     /// Sets a state traffic control decided on.
     ///
     /// \p waiting must be present for `waiting` and absent for everything
     /// else: a hold with no reason recorded cannot be explained afterwards,
     /// and a reason attached to a robot that is not waiting is a leftover.
-    [[nodiscard]] virtual core::Status<UpdateRejection> assign_state(
-        const core::RobotId& robot_id,
-        domain::RobotState state,
-        core::TimePoint at,
-        std::optional<WaitingContext> waiting) = 0;
+    [[nodiscard]] virtual UpdateOutcome assign_state(const core::RobotId& robot_id,
+                                                     domain::RobotState state,
+                                                     core::TimePoint at,
+                                                     std::optional<WaitingContext> waiting) = 0;
+
+    /// Records that a command was sent to a robot.
+    ///
+    /// Recording, not sending — delivery is the adapter's job (Phase 14).
+    /// What is kept here is the half of docs/04_ROBOT_TASK_MODEL.md §22 that
+    /// belongs to the robot's state: which instruction it is currently
+    /// expected to be acting on.
+    [[nodiscard]] virtual core::Status<UpdateRejection> record_command(
+        const RobotCommand& command) = 0;
+
+    /// True when the last command sent has not been acknowledged.
+    ///
+    /// False for a robot that has never been commanded: nothing outstanding is
+    /// not the same as something ignored.
+    [[nodiscard]] virtual bool is_command_outstanding(const core::RobotId& robot_id) const = 0;
 
     /// Associates a route with a robot, or clears it with an empty value.
     /// docs/04_ROBOT_TASK_MODEL.md §17, §24.
@@ -197,12 +227,14 @@ public:
     [[nodiscard]] bool is_registered(const core::RobotId& robot_id) const override;
     [[nodiscard]] std::size_t robot_count() const noexcept override;
 
-    [[nodiscard]] core::Status<UpdateRejection> apply(const RobotStateUpdate& update) override;
-    [[nodiscard]] core::Status<UpdateRejection> assign_state(
-        const core::RobotId& robot_id,
-        domain::RobotState state,
-        core::TimePoint at,
-        std::optional<WaitingContext> waiting) override;
+    [[nodiscard]] UpdateOutcome apply(const RobotStateUpdate& update) override;
+    [[nodiscard]] UpdateOutcome assign_state(const core::RobotId& robot_id,
+                                             domain::RobotState state,
+                                             core::TimePoint at,
+                                             std::optional<WaitingContext> waiting) override;
+    [[nodiscard]] core::Status<UpdateRejection> record_command(
+        const RobotCommand& command) override;
+    [[nodiscard]] bool is_command_outstanding(const core::RobotId& robot_id) const override;
     [[nodiscard]] core::Status<UpdateRejection> assign_route(const core::RobotId& robot_id,
                                                              std::optional<core::RouteId> route,
                                                              core::TimePoint at) override;
