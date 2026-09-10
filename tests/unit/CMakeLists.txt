@@ -35,6 +35,15 @@ target_compile_definitions(tc_map_tests PRIVATE
     TC_REFERENCE_MAP_PATH="${PROJECT_SOURCE_DIR}/configs/maps/reference_map.json"
 )
 
+tc_add_test(tc_planning_tests
+    LABEL   unit
+    SOURCES
+        planning/cost_model_test.cpp
+        planning/route_request_test.cpp
+    LIBS
+        tc::planning
+)
+
 tc_add_test(tc_infrastructure_tests
     LABEL   unit
     SOURCES

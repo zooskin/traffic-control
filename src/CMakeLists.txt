@@ -14,9 +14,9 @@
 add_subdirectory(core)
 add_subdirectory(domain)
 add_subdirectory(map)
+add_subdirectory(planning)
 add_subdirectory(infrastructure)
 
-# Phase 3   : planning
 # Phase 4   : state
 # Phase 5   : task
 # Phase 6   : reservation
