@@ -1,0 +1,29 @@
+# Build output
+build/
+out/
+cmake-build-*/
+_deps/
+CMakeUserPresets.json
+compile_commands.json
+
+# Simulation and benchmark artifacts
+results/
+logs/
+*.log
+*.replay
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local overrides
+.env
+configs/local.*

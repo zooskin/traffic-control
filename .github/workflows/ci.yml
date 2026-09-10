@@ -1,0 +1,129 @@
+name: CI
+
+# docs/19_TECHNOLOGY_DECISION.md §26 requires CI to run, at minimum:
+#   Build / Unit Test / Integration Test / Static Analysis / Formatting Check /
+#   Simulation Smoke Test
+#
+# Sanitizers run as separate jobs (§27) on Linux, because MSVC has no
+# ThreadSanitizer and the decision loop will become multi-threaded.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CMAKE_VERSION: "3.28.3"
+
+jobs:
+  format:
+    name: Formatting
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format-18
+      - name: Check formatting
+        run: |
+          files=$(find include src tests simulation benchmarks \
+                    -name '*.h' -o -name '*.hpp' -o -name '*.cpp' 2>/dev/null || true)
+          if [ -z "$files" ]; then echo "no sources yet"; exit 0; fi
+          clang-format-18 --dry-run --Werror $files
+
+  build:
+    name: Build & Test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-gcc
+            os: ubuntu-24.04
+            preset: dev
+          - name: linux-clang
+            os: ubuntu-24.04
+            preset: dev
+            cc: clang-18
+            cxx: clang++-18
+          - name: windows-msvc
+            os: windows-2022
+            preset: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up compiler
+        if: matrix.cc != ''
+        shell: bash
+        run: |
+          echo "CC=${{ matrix.cc }}"   >> "$GITHUB_ENV"
+          echo "CXX=${{ matrix.cxx }}" >> "$GITHUB_ENV"
+
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+
+      - name: Cache FetchContent dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/${{ matrix.preset }}/_deps
+          key: deps-${{ matrix.name }}-${{ hashFiles('cmake/TrafficDependencies.cmake') }}
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+      - name: Simulation smoke test
+        shell: bash
+        run: |
+          bin="build/${{ matrix.preset }}/bin/tc_simulator"
+          [ -x "$bin" ] || bin="build/${{ matrix.preset }}/bin/Debug/tc_simulator.exe"
+          "$bin" --log-level=info
+
+  sanitizers:
+    name: Sanitizers (${{ matrix.preset }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [asan, tsan]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+  static-analysis:
+    name: clang-tidy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy-18
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Configure
+        run: cmake --preset dev
+      - name: Run clang-tidy on changed sources
+        shell: bash
+        run: |
+          files=$(find include src simulation \
+                    -name '*.h' -o -name '*.cpp' 2>/dev/null || true)
+          if [ -z "$files" ]; then echo "no sources yet"; exit 0; fi
+          clang-tidy-18 -p build/dev $files
