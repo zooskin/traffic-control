@@ -50,7 +50,9 @@ struct ContentionKey {
     core::RobotId robot_b;
     core::ResourceId resource_id;
 
-    [[nodiscard]] friend bool operator==(const ContentionKey&, const ContentionKey&) = default;
+    // Ordering only. This keys a std::map, which needs `<` and nothing else;
+    // a defaulted `==` alongside it is never called and clang rejects the
+    // unused function outright.
     [[nodiscard]] friend std::strong_ordering operator<=>(const ContentionKey&,
                                                           const ContentionKey&) = default;
 };
@@ -666,11 +668,16 @@ std::vector<CorridorPassage> corridor_passages(const map::Map& map, const domain
 
     std::size_t index = 0;
     while (index < route.segments.size()) {
-        const std::optional<domain::TimeWindow>& first = route.segments[index].expected_window;
-        if (!first.has_value()) {
+        const std::optional<domain::TimeWindow>& opening = route.segments[index].expected_window;
+        if (!opening.has_value()) {
             ++index;
             continue;
         }
+
+        // Taken out here rather than read again after the scan below. The scan
+        // walks `last` forward, and a reference into the segment list is no
+        // longer obviously the same optional once it has.
+        const core::TimePoint entry_time = opening.value().start();
 
         const core::ResourceId resource = map.resource_for_edge(route.segments[index].edge_id);
         const domain::Corridor* corridor = map.find_corridor(resource);
@@ -693,7 +700,7 @@ std::vector<CorridorPassage> corridor_passages(const map::Map& map, const domain
 
         const std::optional<domain::TimeWindow>& closing = route.segments[last].expected_window;
         if (closing.has_value()) {
-            auto window = domain::make_time_window(first.value().start(), closing.value().end());
+            auto window = domain::make_time_window(entry_time, closing.value().end());
             if (window.has_value()) {
                 CorridorPassage passage;
                 passage.robot_id = route.robot_id;
