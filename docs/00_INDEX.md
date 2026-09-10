@@ -227,6 +227,51 @@ holding   -> waiting_bay
 리프트나 자동문처럼 통과 시간이 거리에 비례하지 않는 구간이 실제로 있으므로
 필드 자체는 유지한다. 다만 기본은 파생값이다.
 
+### D-008. Heuristic 기본값은 Euclidean이다
+
+`05 §5`는 한 절 안에서 두 가지를 말한다.
+
+```
+기본: Manhattan Distance
+또는 map 특성에 따라: Euclidean Distance
+Heuristic은 admissible하도록 설계한다.
+```
+
+이 두 문장은 이 프로젝트의 맵에서 서로 충돌한다.
+
+Manhattan 거리는 로봇이 축 방향으로만 움직이는 격자 맵에서만 실제 이동
+거리와 같다. `03_MAP_GRAPH`가 정의하는 맵은 일반 그래프이고 Edge는 임의의
+각도로 놓인다. 대각선 Edge에서 `|dx| + |dy|`는 직선거리를 초과하므로
+heuristic이 실제 남은 비용을 과대평가한다.
+
+과대평가하는 A\*는 **실패하지 않는다.** 최단 경로가 아닌 경로를 아무 신호
+없이 반환한다. 그래서 잘못을 알아차릴 방법이 없다.
+
+**결정: `EuclideanHeuristic`을 기본으로 하고, `ManhattanHeuristic`은
+격자형 맵을 위해 남긴다.**
+
+`05 §5`의 "map 특성에 따라"가 이 선택을 이미 허용한다. admissibility는
+같은 절이 명시적으로 요구하는 성질이므로, 충돌 시 그쪽이 이긴다
+(D-004의 2번 System Specification 안에서 더 구체적인 요구가 우선).
+
+관련 구현 사실 두 가지를 함께 기록한다.
+
+**Dijkstra는 별도 알고리즘으로 구현하지 않는다.** `05 §3`이 fallback으로
+지정한 Dijkstra는 heuristic이 0인 A\*와 같다. `ZeroHeuristic`을 주입하면
+된다. 정확성을 유지해야 할 구현이 하나로 줄고, A\* 테스트가 자기 답을
+검증할 기준을 얻는다.
+
+**Heuristic은 거리가 아니라 비용을 반환한다.** `g`와 단위가 같아야 하므로
+`min_cost_per_metre`(= `preferred_factor * (w_distance + w_time / max_speed)`)로
+스케일한다. 이 값을 위로 잘못 잡으면 admissibility가 깨지므로
+`make_admissible_heuristic(map, weights)`이 맵에서 직접 계산한다.
+
+전제 하나가 남는다. 직선거리 기반 heuristic은 **모든 Edge의 `length`가 양
+끝점 좌표 사이 직선거리 이상**이어야 성립한다. 맵 포맷은 이를 강제하지
+않는다(좌표를 명목값으로 쓰고 실제 거리를 `length`에 담는 현장이 있을 수
+있으므로 맵 검증 오류로 두지 않았다). `geometry_supports_distance_heuristic`
+으로 확인하고, 실패하는 맵은 `ZeroHeuristic`으로 계획한다.
+
 ### D-004. 정책 충돌 시 우선순위
 
 21 §4의 우선순위를 문서에 대응시킨다.

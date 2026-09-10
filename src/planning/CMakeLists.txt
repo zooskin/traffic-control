@@ -7,8 +7,11 @@
 
 add_library(tc_planning
     cost_model.cpp
+    heuristic.cpp
     planning_request.cpp
     route_request.cpp
+    route_stability.cpp
+    route_validator.cpp
 )
 add_library(tc::planning ALIAS tc_planning)
 
@@ -21,9 +24,12 @@ target_sources(tc_planning PUBLIC
     BASE_DIRS "${PROJECT_SOURCE_DIR}/include"
     FILES
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/cost_model.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/planning/heuristic.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/planning_request.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_planner.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_request.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_stability.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_validator.h"
 )
 
 target_link_libraries(tc_planning

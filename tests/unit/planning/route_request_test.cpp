@@ -35,7 +35,7 @@ RouteOutcome failure_outcome(std::string robot, RouteFailure failure) {
 
 // ------------------------------------------------------------- constraints
 
-TEST(RouteConstraintsTest, DefaultAllowsEverything) {
+TEST(RouteConstraints, route_constraints_default_allows_everything) {
     const RouteConstraints constraints;
 
     EXPECT_TRUE(is_unconstrained(constraints));
@@ -44,7 +44,7 @@ TEST(RouteConstraintsTest, DefaultAllowsEverything) {
     EXPECT_EQ(constraint_count(constraints), 0U);
 }
 
-TEST(RouteConstraintsTest, BlockedNodeIsRefused) {
+TEST(RouteConstraints, route_constraints_blocked_node_is_refused) {
     RouteConstraints constraints;
     constraints.blocked_nodes.insert(NodeId{"N1"});
 
@@ -53,7 +53,7 @@ TEST(RouteConstraintsTest, BlockedNodeIsRefused) {
     EXPECT_FALSE(is_unconstrained(constraints));
 }
 
-TEST(RouteConstraintsTest, BlockedEdgeIsRefused) {
+TEST(RouteConstraints, route_constraints_blocked_edge_is_refused) {
     RouteConstraints constraints;
     constraints.blocked_edges.insert(EdgeId{"E1"});
 
@@ -61,7 +61,7 @@ TEST(RouteConstraintsTest, BlockedEdgeIsRefused) {
     EXPECT_TRUE(allows_edge(constraints, EdgeId{"E2"}, ResourceId{"R1"}));
 }
 
-TEST(RouteConstraintsTest, BlockingAResourceBlocksEveryEdgeInIt) {
+TEST(RouteConstraints, route_constraints_blocked_resource_blocks_every_edge_in_it) {
     // The point of docs/00_MASTER_PLAN.md §4.2: a corridor is one resource
     // over several edges. Taking it out of service must not have to name each
     // edge, or a corridor stays half-open when one is forgotten.
@@ -74,14 +74,14 @@ TEST(RouteConstraintsTest, BlockingAResourceBlocksEveryEdgeInIt) {
     EXPECT_TRUE(allows_edge(constraints, EdgeId{"E-OTHER"}, ResourceId{"CORRIDOR-02"}));
 }
 
-TEST(RouteConstraintsTest, ForbiddenResourceIsRefusedLikeABlockedOne) {
+TEST(RouteConstraints, route_constraints_forbidden_resource_is_refused) {
     RouteConstraints constraints;
     constraints.forbidden_resources.insert(ResourceId{"LIFT-01"});
 
     EXPECT_FALSE(allows_edge(constraints, EdgeId{"E-LIFT"}, ResourceId{"LIFT-01"}));
 }
 
-TEST(RouteConstraintsTest, BlockedAndForbiddenStayDistinct) {
+TEST(RouteConstraints, route_constraints_blocked_and_forbidden_stay_distinct) {
     // Both exclude, and they mean different things: one expires when the aisle
     // clears, the other is a property of the robot.
     RouteConstraints blocked;
@@ -95,7 +95,7 @@ TEST(RouteConstraintsTest, BlockedAndForbiddenStayDistinct) {
     EXPECT_NE(blocked, forbidden);
 }
 
-TEST(RouteConstraintsTest, PreferenceIsNotARestriction) {
+TEST(RouteConstraints, route_constraints_preference_is_not_a_restriction) {
     RouteConstraints constraints;
     constraints.preferred_resources.insert(ResourceId{"MAIN-AISLE"});
 
@@ -105,7 +105,7 @@ TEST(RouteConstraintsTest, PreferenceIsNotARestriction) {
     EXPECT_FALSE(prefers_resource(constraints, ResourceId{"SIDE-AISLE"}));
 }
 
-TEST(RouteConstraintsTest, CountsEveryRestriction) {
+TEST(RouteConstraints, route_constraints_count_includes_every_restriction) {
     RouteConstraints constraints;
     constraints.blocked_edges.insert(EdgeId{"E1"});
     constraints.blocked_nodes.insert(NodeId{"N1"});
@@ -116,7 +116,7 @@ TEST(RouteConstraintsTest, CountsEveryRestriction) {
     EXPECT_EQ(constraint_count(constraints), 5U);
 }
 
-TEST(RouteConstraintsTest, IterationOrderIsSorted) {
+TEST(RouteConstraints, route_constraints_iteration_order_is_sorted) {
     // docs/20_CODING_GUIDELINES.md §23. These sets are iterated when a
     // planning decision is logged; a hashed container would produce a
     // different log for the same decision on a different run.
@@ -135,7 +135,7 @@ TEST(RouteConstraintsTest, IterationOrderIsSorted) {
 
 // ---------------------------------------------------------------- failures
 
-TEST(RouteFailureTest, EveryValueHasAName) {
+TEST(RouteFailure, route_failure_every_value_has_a_name) {
     for (const RouteFailure failure : {RouteFailure::invalid_request,
                                        RouteFailure::unknown_start,
                                        RouteFailure::unknown_goal,
@@ -146,13 +146,13 @@ TEST(RouteFailureTest, EveryValueHasAName) {
     }
 }
 
-TEST(RouteFailureTest, NoRouteKeepsTheSpecName) {
+TEST(RouteFailure, route_failure_no_route_keeps_the_spec_name) {
     // docs/05_GLOBAL_ROUTING.md §13 names this exactly. It appears in logs and
     // in the traffic controller's policy table.
     EXPECT_EQ(to_string(RouteFailure::no_route), "NO_ROUTE");
 }
 
-TEST(RouteFailureTest, OnlyConstraintDrivenFailuresAreWorthRetrying) {
+TEST(RouteFailure, route_failure_only_constraint_driven_failures_are_retryable) {
     EXPECT_TRUE(is_retryable(RouteFailure::no_route));
     EXPECT_TRUE(is_retryable(RouteFailure::blocked_start));
     EXPECT_TRUE(is_retryable(RouteFailure::blocked_goal));
@@ -164,7 +164,7 @@ TEST(RouteFailureTest, OnlyConstraintDrivenFailuresAreWorthRetrying) {
 
 // ------------------------------------------------------------------- batch
 
-TEST(PlanningStatusTest, EveryValueHasAName) {
+TEST(PlanningStatus, planning_status_every_value_has_a_name) {
     for (const PlanningStatus status : {PlanningStatus::success,
                                         PlanningStatus::no_path,
                                         PlanningStatus::timeout,
@@ -174,25 +174,25 @@ TEST(PlanningStatusTest, EveryValueHasAName) {
     }
 }
 
-TEST(PlanningResultTest, AllSucceededIsSuccess) {
+TEST(PlanningResult, planning_result_all_succeeded_is_success) {
     const std::vector<RouteOutcome> outcomes{success_outcome("R01"), success_outcome("R02")};
 
     EXPECT_EQ(status_for(outcomes), PlanningStatus::success);
 }
 
-TEST(PlanningResultTest, EmptyBatchIsSuccess) {
+TEST(PlanningResult, planning_result_empty_batch_is_success) {
     // An idle fleet asked for nothing is not a failure.
     EXPECT_EQ(status_for({}), PlanningStatus::success);
 }
 
-TEST(PlanningResultTest, OneUnreachableGoalIsNoPathNotFailed) {
+TEST(PlanningResult, planning_result_unreachable_goal_is_no_path) {
     const std::vector<RouteOutcome> outcomes{success_outcome("R01"),
                                              failure_outcome("R02", RouteFailure::no_route)};
 
     EXPECT_EQ(status_for(outcomes), PlanningStatus::no_path);
 }
 
-TEST(PlanningResultTest, AMalformedRequestIsFailed) {
+TEST(PlanningResult, planning_result_malformed_request_is_failed) {
     // A request that can never succeed is a different answer from a goal that
     // is unreachable right now: NO_PATH invites a retry, FAILED does not.
     const std::vector<RouteOutcome> outcomes{success_outcome("R01"),
@@ -201,7 +201,7 @@ TEST(PlanningResultTest, AMalformedRequestIsFailed) {
     EXPECT_EQ(status_for(outcomes), PlanningStatus::failed);
 }
 
-TEST(PlanningResultTest, PartialFailureStillReturnsTheRoutesThatWorked) {
+TEST(PlanningResult, planning_result_partial_failure_returns_successful_routes) {
     // One unreachable goal must not stall two hundred robots.
     PlanningResult result;
     result.outcomes = {success_outcome("R01"),
@@ -214,7 +214,7 @@ TEST(PlanningResultTest, PartialFailureStillReturnsTheRoutesThatWorked) {
     EXPECT_EQ(successful_routes(result).size(), 2U);
 }
 
-TEST(PlanningResultTest, OutcomesKeepRequestOrder) {
+TEST(PlanningResult, planning_result_outcomes_keep_request_order) {
     PlanningResult result;
     result.outcomes = {success_outcome("R03"), success_outcome("R01"), success_outcome("R02")};
 

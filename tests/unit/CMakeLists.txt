@@ -39,7 +39,10 @@ tc_add_test(tc_planning_tests
     LABEL   unit
     SOURCES
         planning/cost_model_test.cpp
+        planning/heuristic_test.cpp
         planning/route_request_test.cpp
+        planning/route_stability_test.cpp
+        planning/route_validator_test.cpp
     LIBS
         tc::planning
 )

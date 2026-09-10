@@ -56,7 +56,7 @@ private:
 
 // ------------------------------------------------------------------ weights
 
-TEST(CostWeightsTest, DefaultsAreShortestDistance) {
+TEST(CostWeights, cost_weights_default_to_shortest_distance) {
     const CostWeights weights;
 
     EXPECT_DOUBLE_EQ(weights.distance, 1.0);
@@ -66,11 +66,11 @@ TEST(CostWeightsTest, DefaultsAreShortestDistance) {
     EXPECT_DOUBLE_EQ(weights.preferred_factor, 1.0);
 }
 
-TEST(CostWeightsTest, DefaultsValidate) {
+TEST(CostWeights, cost_weights_defaults_are_valid) {
     EXPECT_TRUE(make_cost_weights(CostWeights{}).has_value());
 }
 
-TEST(CostWeightsTest, RejectsNegativeWeight) {
+TEST(CostWeights, cost_weights_negative_weight_is_rejected) {
     CostWeights weights;
     weights.congestion = -1.0;
 
@@ -80,7 +80,7 @@ TEST(CostWeightsTest, RejectsNegativeWeight) {
     EXPECT_EQ(result.error(), domain::DomainError::negative_value);
 }
 
-TEST(CostWeightsTest, RejectsPreferredFactorAboveOne) {
+TEST(CostWeights, cost_weights_preferred_factor_above_one_is_rejected) {
     // Above 1 would mean "prefer this resource by making it more expensive".
     CostWeights weights;
     weights.preferred_factor = 1.5;
@@ -88,7 +88,7 @@ TEST(CostWeightsTest, RejectsPreferredFactorAboveOne) {
     EXPECT_FALSE(make_cost_weights(weights).has_value());
 }
 
-TEST(CostWeightsTest, RejectsZeroPreferredFactor) {
+TEST(CostWeights, cost_weights_zero_preferred_factor_is_rejected) {
     // A free edge lets a route loop through it at no cost.
     CostWeights weights;
     weights.preferred_factor = 0.0;
@@ -98,7 +98,7 @@ TEST(CostWeightsTest, RejectsZeroPreferredFactor) {
 
 // --------------------------------------------------------------- edge cost
 
-TEST(EdgeCostTest, DistanceOnlyByDefault) {
+TEST(EdgeCost, edge_cost_default_weights_use_distance_only) {
     const domain::Edge edge = make_test_edge(10.0, 2.0);
     const FreeFlowConditions conditions;
 
@@ -108,7 +108,7 @@ TEST(EdgeCostTest, DistanceOnlyByDefault) {
     EXPECT_DOUBLE_EQ(cost, 10.0);
 }
 
-TEST(EdgeCostTest, TravelTimeUsesLengthOverSpeed) {
+TEST(EdgeCost, edge_cost_travel_time_is_length_over_speed) {
     const domain::Edge edge = make_test_edge(10.0, 2.0);  // 5 seconds
     const FreeFlowConditions conditions;
 
@@ -122,7 +122,7 @@ TEST(EdgeCostTest, TravelTimeUsesLengthOverSpeed) {
     EXPECT_DOUBLE_EQ(cost, 5.0);
 }
 
-TEST(EdgeCostTest, TravelTimeUsesOverrideWhenSet) {
+TEST(EdgeCost, edge_cost_travel_time_uses_override_when_set) {
     // docs/00_INDEX.md D-007: the override exists for a lift, where the time
     // spent has nothing to do with the distance covered.
     domain::Edge edge = make_test_edge(10.0, 2.0);
@@ -139,7 +139,7 @@ TEST(EdgeCostTest, TravelTimeUsesOverrideWhenSet) {
     EXPECT_DOUBLE_EQ(cost, 30.0);
 }
 
-TEST(EdgeCostTest, CongestionAddsToCost) {
+TEST(EdgeCost, edge_cost_congestion_adds_to_cost) {
     const domain::Edge edge = make_test_edge(10.0, 2.0);
     const FixedConditions conditions{1.0, core::Duration::zero()};
 
@@ -152,7 +152,7 @@ TEST(EdgeCostTest, CongestionAddsToCost) {
     EXPECT_DOUBLE_EQ(cost, 14.0);
 }
 
-TEST(EdgeCostTest, WaitingAddsToCost) {
+TEST(EdgeCost, edge_cost_expected_wait_adds_to_cost) {
     const domain::Edge edge = make_test_edge(10.0, 2.0);
     const FixedConditions conditions{0.0,
                                      std::chrono::duration_cast<core::Duration>(core::Seconds{3})};
@@ -166,7 +166,7 @@ TEST(EdgeCostTest, WaitingAddsToCost) {
     EXPECT_DOUBLE_EQ(cost, 16.0);
 }
 
-TEST(EdgeCostTest, PreferredResourceIsCheaper) {
+TEST(EdgeCost, edge_cost_preferred_resource_is_cheaper) {
     const domain::Edge edge = make_test_edge(10.0, 2.0);
     const FreeFlowConditions conditions;
 
@@ -186,7 +186,7 @@ TEST(EdgeCostTest, PreferredResourceIsCheaper) {
     EXPECT_LT(preferred, ordinary);
 }
 
-TEST(EdgeCostTest, CostIsNeverNegative) {
+TEST(EdgeCost, edge_cost_is_never_negative) {
     // A* stays correct only while every edge cost is non-negative. With
     // validated weights there is no combination of inputs that produces one.
     const domain::Edge edge = make_test_edge(10.0, 2.0);
@@ -210,7 +210,7 @@ TEST(EdgeCostTest, CostIsNeverNegative) {
 
 // --------------------------------------------------------- heuristic bound
 
-TEST(MinCostPerMetreTest, NeverExceedsWhatAMetreActuallyCosts) {
+TEST(MinCostPerMetre, min_cost_per_metre_never_exceeds_real_edge_cost) {
     // The admissibility argument, as a test: for every edge, the bound times
     // the edge's length must not exceed the edge's real cost. If this fails,
     // A* can return a route that is not the cheapest.
@@ -236,7 +236,7 @@ TEST(MinCostPerMetreTest, NeverExceedsWhatAMetreActuallyCosts) {
     }
 }
 
-TEST(MinCostPerMetreTest, AccountsForThePreferenceDiscount) {
+TEST(MinCostPerMetre, min_cost_per_metre_accounts_for_preference_discount) {
     // A discounted edge is the cheapest an edge can be, so the bound has to
     // include the discount or it will overestimate exactly on the routes a
     // preference was meant to encourage.
@@ -258,7 +258,7 @@ TEST(MinCostPerMetreTest, AccountsForThePreferenceDiscount) {
     EXPECT_DOUBLE_EQ(bound, 0.5);
 }
 
-TEST(MinCostPerMetreTest, FallsBackToZeroWithoutAPositiveSpeed) {
+TEST(MinCostPerMetre, min_cost_per_metre_without_positive_speed_is_zero) {
     CostWeights weights;
     weights.travel_time = 1.0;
 
@@ -268,13 +268,13 @@ TEST(MinCostPerMetreTest, FallsBackToZeroWithoutAPositiveSpeed) {
 
 // --------------------------------------------------------------- durations
 
-TEST(ToSecondsTest, ConvertsNanosecondsToRealSeconds) {
+TEST(ToSeconds, to_seconds_converts_nanoseconds_to_real_seconds) {
     EXPECT_DOUBLE_EQ(to_seconds(core::Duration::zero()), 0.0);
     EXPECT_DOUBLE_EQ(
         to_seconds(std::chrono::duration_cast<core::Duration>(core::Milliseconds{1500})), 1.5);
 }
 
-TEST(FreeFlowConditionsTest, ReportsNoTraffic) {
+TEST(FreeFlowConditions, free_flow_conditions_report_no_traffic) {
     const FreeFlowConditions conditions;
 
     EXPECT_DOUBLE_EQ(conditions.congestion(ResourceId{"CORRIDOR-01"}), 0.0);
