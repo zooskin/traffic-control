@@ -5,6 +5,7 @@
 
 add_library(tc_map
     map.cpp
+    map_loader.cpp
     map_validator.cpp
 )
 add_library(tc::map ALIAS tc_map)
@@ -18,10 +19,14 @@ target_sources(tc_map PUBLIC
     BASE_DIRS "${PROJECT_SOURCE_DIR}/include"
     FILES
         "${PROJECT_SOURCE_DIR}/include/traffic/map/map.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/map/map_loader.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/map/map_validator.h"
 )
 
-target_link_libraries(tc_map PUBLIC tc::domain)
+target_link_libraries(tc_map
+    PUBLIC  tc::domain
+    PRIVATE nlohmann_json::nlohmann_json
+)
 
 tc_configure_target(tc_map)
 

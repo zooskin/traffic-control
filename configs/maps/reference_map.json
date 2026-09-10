@@ -1,0 +1,100 @@
+{
+  "map_id": "reference",
+  "version": 1,
+
+  "_comment": [
+    "The base map of docs/17_SIMULATION_SCENARIOS.md §2, laid out as:",
+    "",
+    "  ENTRY -- long single-lane corridor -- X (intersection)",
+    "                                        |",
+    "                        +---------------+---------------+",
+    "                        |               |               |",
+    "                     AREA-A          BAY-01          AREA-B",
+    "",
+    "It exists so that the scenarios of docs/26_TEST_SCENARIOS.md have",
+    "something concrete to run against. The corridor is deliberately single",
+    "lane and bidirectional: that is the head-on case the project is for.",
+    "The waiting bay off the intersection is the escape route a head-on",
+    "deadlock needs."
+  ],
+
+  "defaults": {
+    "speed_limit": 1.2
+  },
+
+  "nodes": [
+    { "id": "ENTRY",  "type": "ENTRY",        "x": 0.0,  "y": 0.0 },
+    { "id": "C-IN",   "type": "NORMAL",       "x": 5.0,  "y": 0.0 },
+    { "id": "C-MID",  "type": "NORMAL",       "x": 20.0, "y": 0.0 },
+    { "id": "C-OUT",  "type": "NORMAL",       "x": 35.0, "y": 0.0 },
+    { "id": "X",      "type": "INTERSECTION", "x": 40.0, "y": 0.0, "resource_id": "INT-01" },
+    { "id": "A-DOCK", "type": "PICKUP",       "x": 45.0, "y": 10.0, "orientation": 1.5708 },
+    { "id": "B-DOCK", "type": "DROPOFF",      "x": 45.0, "y": -10.0, "orientation": -1.5708 },
+    { "id": "BAY",    "type": "WAITING_BAY",  "x": 48.0, "y": 0.0 },
+    { "id": "CHARGE", "type": "CHARGER",      "x": 52.0, "y": 6.0, "orientation": 0.0 }
+  ],
+
+  "edges": [
+    { "id": "E-ENTRY", "from": "ENTRY",  "to": "C-IN",   "length": 5.0,  "width": 3.0 },
+
+    { "id": "E-C1", "from": "C-IN",  "to": "C-MID", "length": 15.0, "width": 1.4,
+      "resource_id": "CORRIDOR-01", "capacity": 1 },
+    { "id": "E-C2", "from": "C-MID", "to": "C-OUT", "length": 15.0, "width": 1.4,
+      "resource_id": "CORRIDOR-01", "capacity": 1 },
+    { "id": "E-C3", "from": "C-OUT", "to": "X",     "length": 5.0,  "width": 1.4,
+      "resource_id": "CORRIDOR-01", "capacity": 1 },
+
+    { "id": "E-XA",  "from": "X",   "to": "A-DOCK", "length": 11.2, "width": 2.5 },
+    { "id": "E-XB",  "from": "X",   "to": "B-DOCK", "length": 11.2, "width": 2.5 },
+    { "id": "E-XBAY","from": "X",   "to": "BAY",    "length": 8.0,  "width": 2.0 },
+    { "id": "E-BAYC","from": "BAY", "to": "CHARGE", "length": 7.2,  "width": 2.0 }
+  ],
+
+  "corridors": [
+    {
+      "id": "CORRIDOR-01",
+      "entry_node": "C-IN",
+      "exit_node": "X",
+      "edges": ["E-C1", "E-C2", "E-C3"],
+      "capacity": 1,
+      "direction": "BIDIRECTIONAL"
+    }
+  ],
+
+  "intersections": [
+    {
+      "id": "INT-01",
+      "nodes": ["X"],
+      "edges": ["E-C3", "E-XA", "E-XB", "E-XBAY"],
+      "capacity": 1,
+      "movements": [
+        { "id": "M-CORRIDOR-TO-A", "from_edge": "E-C3", "to_edge": "E-XA" },
+        { "id": "M-CORRIDOR-TO-B", "from_edge": "E-C3", "to_edge": "E-XB" },
+        { "id": "M-A-TO-CORRIDOR", "from_edge": "E-XA", "to_edge": "E-C3" },
+        { "id": "M-B-TO-CORRIDOR", "from_edge": "E-XB", "to_edge": "E-C3" },
+        { "id": "M-A-TO-B",        "from_edge": "E-XA", "to_edge": "E-XB" },
+        { "id": "M-TO-BAY",        "from_edge": "E-C3", "to_edge": "E-XBAY" }
+      ],
+      "conflict_groups": [
+        {
+          "id": "G-CORRIDOR-MOUTH",
+          "movements": [
+            "M-CORRIDOR-TO-A",
+            "M-CORRIDOR-TO-B",
+            "M-A-TO-CORRIDOR",
+            "M-B-TO-CORRIDOR",
+            "M-TO-BAY"
+          ]
+        },
+        {
+          "id": "G-CROSS-AB",
+          "movements": ["M-A-TO-B", "M-CORRIDOR-TO-A", "M-CORRIDOR-TO-B"]
+        }
+      ]
+    }
+  ],
+
+  "waiting_bays": [
+    { "id": "BAY-01", "node_id": "BAY", "capacity": 1 }
+  ]
+}

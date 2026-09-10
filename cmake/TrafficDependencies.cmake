@@ -33,7 +33,23 @@ FetchContent_Declare(spdlog
     SYSTEM
 )
 
-FetchContent_MakeAvailable(fmt spdlog)
+# ------------------------------------------------------- nlohmann/json -------
+# docs/19_TECHNOLOGY_DECISION.md §15 already settles on JSON for external data;
+# this is an implementation of that decision, not a new one. Map files are
+# hand-edited by site engineers, so the format has to be readable and
+# diffable — a binary format would make a bad corridor definition impossible to
+# review.
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+set(JSON_Install    OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+    GIT_SHALLOW    TRUE
+    SYSTEM
+)
+
+FetchContent_MakeAvailable(fmt spdlog nlohmann_json)
 
 # --------------------------------------------------------- googletest --------
 # docs/19_TECHNOLOGY_DECISION.md §11
