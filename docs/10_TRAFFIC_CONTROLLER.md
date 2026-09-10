@@ -2,17 +2,11 @@ Traffic Control Software
 
 Traffic Controller Core Specification
 
-1\. 목적
-
-
+1. 목적
 
 Traffic Controller는 전체 Traffic Control System의 orchestration을 담당한다.
 
-
-
 다음 component를 통합한다.
-
-
 
 Map
 
@@ -30,91 +24,52 @@ Replanning Engine
 
 Deadlock Manager
 
+2. 전체 구조
+                 Task Manager
+                      |
+                      v
+                Route Planner
+                      |
+                      v
+              Traffic Controller
+                      |
+        +-------------+-------------+
+        |             |             |
+        v             v             v
+ Reservation      Priority      Replanning
+ Manager          Manager        Engine
+        |             |             |
+        +-------------+-------------+
+                      |
+                      v
+                Deadlock Manager
+                      |
+                      v
+                 Robot Adapter
 
-
-2\. 전체 구조
-
-&#x20;                Task Manager
-
-&#x20;                     |
-
-&#x20;                     v
-
-&#x20;               Route Planner
-
-&#x20;                     |
-
-&#x20;                     v
-
-&#x20;             Traffic Controller
-
-&#x20;                     |
-
-&#x20;       +-------------+-------------+
-
-&#x20;       |             |             |
-
-&#x20;       v             v             v
-
-&#x20;Reservation      Priority      Replanning
-
-&#x20;Manager          Manager        Engine
-
-&#x20;       |             |             |
-
-&#x20;       +-------------+-------------+
-
-&#x20;                     |
-
-&#x20;                     v
-
-&#x20;               Deadlock Manager
-
-&#x20;                     |
-
-&#x20;                     v
-
-&#x20;                Robot Adapter
-
-
-
-3\. Traffic Controller Loop
-
-
+3. Traffic Controller Loop
 
 기본적으로 Event Driven Architecture를 사용한다.
 
-
-
 Event
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 State Update
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 Traffic Decision
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 Reservation
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 Command
 
-
-
-4\. 주요 Event
+4. 주요 Event
 
 RobotStateUpdated
 
@@ -124,13 +79,9 @@ RobotBlocked
 
 RobotFailed
 
-
-
 HumanDetected
 
 HumanCleared
-
-
 
 TaskCreated
 
@@ -138,191 +89,111 @@ TaskCancelled
 
 TaskCompleted
 
-
-
 ReservationRequested
 
 ReservationGranted
 
 ReservationExpired
 
-
-
 DeadlockDetected
 
 MapChanged
 
-
-
-5\. Event Processing
-
-
+5. Event Processing
 
 Event 수신:
 
-
-
 Event Bus
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Traffic Controller
 
-
-
-
-
 Event 종류에 따라 handler를 호출한다.
-
-
 
 예:
 
-
-
 RobotBlocked
+    |
+    v
 
-&#x20;   |
+handle_robot_blocked()
 
-&#x20;   v
-
-handle\_robot\_blocked()
-
-
-
-6\. Robot State Update
-
-
+6. Robot State Update
 
 Robot 상태가 들어오면:
 
+1. Validate state
 
+2. Update Robot State
 
-1\. Validate state
+3. Update Resource Occupancy
 
-2\. Update Robot State
+4. Update Reservation
 
-3\. Update Resource Occupancy
+5. Detect Events
 
-4\. Update Reservation
-
-5\. Detect Events
-
-
-
-7\. Robot Movement
-
-
+7. Robot Movement
 
 Robot이 route를 따라 이동하면:
 
-
-
 Current Edge
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Next Resource
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Reservation Check
 
-
-
-
-
 Reservation이 있으면:
 
-
-
 GRANTED
-
-&#x20;   |
-
-&#x20;   v
+    |
+    v
 
 MOVE
 
-
-
-
-
 없으면:
-
-
 
 WAIT
 
-
-
-8\. Next Resource Planning
-
-
+8. Next Resource Planning
 
 Robot이 현재 resource를 사용 중일 때 다음 resource를 미리 예약한다.
 
-
-
 Current
-
-&#x20;  |
-
-&#x20;  +-- Next Resource
-
-&#x20;  |
-
-&#x20;  +-- Next+1 Resource
-
-
-
-
+   |
+   +-- Next Resource
+   |
+   +-- Next+1 Resource
 
 Rolling Horizon을 사용한다.
 
-
-
-9\. Traffic Decision
-
-
+9. Traffic Decision
 
 Traffic Controller는 다음 순서로 판단한다.
 
+1. Safety condition
 
+2. Deadlock condition
 
-1\. Safety condition
+3. Resource conflict
 
-2\. Deadlock condition
+4. Priority
 
-3\. Resource conflict
+5. Reservation
 
-4\. Priority
+6. Route validity
 
-5\. Reservation
+7. Movement command
 
-6\. Route validity
-
-7\. Movement command
-
-
-
-10\. Safety Priority
-
-
+10. Safety Priority
 
 Safety 관련 상태는 일반 traffic priority보다 항상 우선한다.
 
-
-
 예:
-
-
 
 Emergency Stop
 
@@ -330,57 +201,31 @@ Protective Stop
 
 Safety Scanner
 
-
-
-
-
 이들은 Traffic Controller의 일반 command와 별도의 safety layer에서 처리한다.
 
-
-
-11\. Reservation Decision
-
-
+11. Reservation Decision
 
 예:
-
-
 
 R01 requests C01
 
 R02 owns C01
 
-
-
-
-
 Traffic Controller:
 
-
-
 Conflict
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Priority Manager
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Decision
 
-
-
-12\. Decision
-
-
+12. Decision
 
 가능한 결과:
-
-
 
 GRANT
 
@@ -392,149 +237,95 @@ RECOVERY
 
 ESCALATE
 
-
-
-13\. Human Blockage
+13. Human Blockage
 
 HumanDetected
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Robot Stop
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Estimate Blockage Duration
+      |
+      +---- short ----> WAIT
+      |
+      +---- long -----> REPLAN
 
-&#x20;     |
-
-&#x20;     +---- short ----> WAIT
-
-&#x20;     |
-
-&#x20;     +---- long -----> REPLAN
-
-
-
-14\. Human Clear
+14. Human Clear
 
 HumanCleared
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Validate Reservation
+     |
+     +---- valid ----> RESUME
+     |
+     +---- invalid --> REPLAN
 
-&#x20;    |
-
-&#x20;    +---- valid ----> RESUME
-
-&#x20;    |
-
-&#x20;    +---- invalid --> REPLAN
-
-
-
-15\. Robot Failure
+15. Robot Failure
 
 RobotFailed
-
-&#x20;   |
-
-&#x20;   v
+    |
+    v
 
 Mark Robot Failed
-
-&#x20;   |
-
-&#x20;   v
+    |
+    v
 
 Identify Occupied Resources
-
-&#x20;   |
-
-&#x20;   v
+    |
+    v
 
 Identify Affected Robots
-
-&#x20;   |
-
-&#x20;   v
+    |
+    v
 
 Replanning
 
-
-
-16\. Deadlock
+16. Deadlock
 
 Traffic State
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Wait-for Graph
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Cycle?
-
-&#x20;    |
-
-&#x20;  YES
-
-&#x20;    |
-
-&#x20;    v
+     |
+   YES
+     |
+     v
 
 Deadlock Manager
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Recovery
 
-
-
-17\. Command Generation
-
-
+17. Command Generation
 
 Traffic Controller는 Robot Adapter에 command를 전달한다.
 
-
-
 Traffic Controller
-
-&#x20;       |
-
-&#x20;       v
+        |
+        v
 
 RobotCommand
-
-&#x20;       |
-
-&#x20;       v
+        |
+        v
 
 Robot Adapter
-
-&#x20;       |
-
-&#x20;       v
+        |
+        v
 
 Robot
 
-
-
-18\. Command 종류
+18. Command 종류
 
 MOVE
 
@@ -546,185 +337,99 @@ RESUME
 
 REROUTE
 
-GO\_TO\_WAITING\_BAY
+GO_TO_WAITING_BAY
 
-
-
-19\. Command Idempotency
-
-
+19. Command Idempotency
 
 모든 command는 unique ID를 가진다.
 
-
-
-command\_id
-
-
-
-
+command_id
 
 Robot Adapter는 동일 command가 반복 전달되어도 중복 실행되지 않도록 한다.
 
-
-
-20\. State Machine
-
-
+20. State Machine
 
 Traffic Controller의 Robot lifecycle:
 
-
-
 IDLE
-
-&#x20;|
-
-&#x20;v
+ |
+ v
 
 ASSIGNED
-
-&#x20;|
-
-&#x20;v
+ |
+ v
 
 PLANNING
-
-&#x20;|
-
-&#x20;v
+ |
+ v
 
 RESERVING
-
-&#x20;|
-
-&#x20;v
+ |
+ v
 
 MOVING
+ |
+ +----> WAITING
+ |          |
+ |          v
+ |       MOVING
+ |
+ +----> BLOCKED
+            |
+            v
+        REPLANNING
+            |
+            v
+          MOVING
 
-&#x20;|
-
-&#x20;+----> WAITING
-
-&#x20;|          |
-
-&#x20;|          v
-
-&#x20;|       MOVING
-
-&#x20;|
-
-&#x20;+----> BLOCKED
-
-&#x20;           |
-
-&#x20;           v
-
-&#x20;       REPLANNING
-
-&#x20;           |
-
-&#x20;           v
-
-&#x20;         MOVING
-
-
-
-21\. Event Ordering
-
-
+21. Event Ordering
 
 Event timestamp를 관리한다.
 
+event_timestamp
 
-
-event\_timestamp
-
-controller\_timestamp
-
-
-
-
+controller_timestamp
 
 오래된 event는 현재 상태를 덮어쓰지 않도록 한다.
 
-
-
-22\. Out-of-Order Event
-
-
+22. Out-of-Order Event
 
 예:
-
-
 
 Event A timestamp = 100
 
 Event B timestamp = 90
 
-
-
-
-
 B가 늦게 도착하면 이미 처리된 최신 state를 덮어쓰지 않는다.
 
-
-
-23\. Duplicate Event
-
-
+23. Duplicate Event
 
 같은 event가 여러 번 들어올 수 있다.
 
-
-
-event\_id
-
-
-
-
+event_id
 
 를 사용하여 duplicate를 제거한다.
 
-
-
-24\. Controller State
-
-
+24. Controller State
 
 Traffic Controller는 전체 system state를 유지한다.
 
-
-
 TrafficState {
-
-&#x20;   robots
-
-&#x20;   resources
-
-&#x20;   reservations
-
-&#x20;   tasks
-
-&#x20;   events
+    robots
+    resources
+    reservations
+    tasks
+    events
 
 }
 
-
-
-25\. Snapshot
-
-
+25. Snapshot
 
 주기적으로 system state snapshot을 저장할 수 있어야 한다.
 
-
-
-snapshot\_id
+snapshot_id
 
 timestamp
-
-
 
 robots
 
@@ -734,179 +439,100 @@ reservations
 
 tasks
 
-
-
-
-
 Controller restart 시 recovery에 사용한다.
 
-
-
-26\. Recovery
-
-
+26. Recovery
 
 Controller가 재시작하면:
 
-
-
 Load Snapshot
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Load Reservation State
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Query Robot States
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Reconcile
-
-&#x20;    |
-
-&#x20;    v
+     |
+     v
 
 Resume Traffic Control
 
-
-
-27\. Reconciliation
-
-
+27. Reconciliation
 
 Controller state와 실제 Robot state가 다를 경우:
 
-
-
 Controller State
-
-&#x20;      vs
+       vs
 
 Robot State
 
-
-
-
-
 차이를 검출한다.
 
-
-
 예:
-
-
 
 Controller:
 
 R01 = C01
 
-
-
 Robot:
 
 R01 = C02
 
-
-
-
-
 이 경우 reservation과 route를 재검증한다.
 
-
-
-28\. Metrics
-
-
+28. Metrics
 
 Traffic Controller는 다음 metric을 제공한다.
 
+active_robot_count
 
+active_reservation_count
 
-active\_robot\_count
+waiting_robot_count
 
+blocked_robot_count
 
+deadlock_count
 
-active\_reservation\_count
+replanning_count
 
+reservation_conflict_count
 
+command_latency
 
-waiting\_robot\_count
+planning_latency
 
+29. API
 
+submit_task()
 
-blocked\_robot\_count
+cancel_task()
 
+update_robot_state()
 
+request_route()
 
-deadlock\_count
+request_reservation()
 
+get_robot_state()
 
+get_resource_state()
 
-replanning\_count
+get_traffic_state()
 
+trigger_replanning()
 
+trigger_recovery()
 
-reservation\_conflict\_count
-
-
-
-command\_latency
-
-
-
-planning\_latency
-
-
-
-29\. API
-
-submit\_task()
-
-cancel\_task()
-
-
-
-update\_robot\_state()
-
-
-
-request\_route()
-
-request\_reservation()
-
-
-
-get\_robot\_state()
-
-get\_resource\_state()
-
-
-
-get\_traffic\_state()
-
-
-
-trigger\_replanning()
-
-trigger\_recovery()
-
-
-
-30\. Observability
-
-
+30. Observability
 
 다음 log level을 지원한다.
-
-
 
 ERROR
 
@@ -918,13 +544,7 @@ DEBUG
 
 TRACE
 
-
-
-
-
 Production에서는 기본적으로:
-
-
 
 INFO
 
@@ -932,25 +552,13 @@ WARN
 
 ERROR
 
-
-
-
-
 를 사용한다.
 
-
-
-31\. Decision Trace
-
-
+31. Decision Trace
 
 Traffic decision을 사후에 재현할 수 있어야 한다.
 
-
-
 예:
-
-
 
 10:00:00 R01 requests C01
 
@@ -964,89 +572,43 @@ Traffic decision을 사후에 재현할 수 있어야 한다.
 
 10:00:03 R01 GRANT
 
-
-
-32\. Performance Target
-
-
+32. Performance Target
 
 초기 목표:
 
-
-
 200 robots
 
-
-
-
-
 이벤트 처리:
-
-
 
 P95 < 50 ms
 
 P99 < 100 ms
 
-
-
-
-
 Route planning은 별도의 latency budget으로 관리한다.
 
-
-
-33\. Concurrency
-
-
+33. Concurrency
 
 Traffic Controller는 여러 event를 동시에 처리할 수 있어야 한다.
 
-
-
 하지만 동일 resource에 대한 결정은 serialization 또는 atomic transaction을 보장해야 한다.
 
-
-
-34\. Failure Isolation
-
-
+34. Failure Isolation
 
 하나의 Robot 오류가 전체 Traffic Controller를 crash시키면 안 된다.
 
-
-
 예:
-
-
 
 R01 malformed message
 
-
-
-
-
 이어도:
 
-
-
-R02 \~ R200
-
-
-
-
+R02 ~ R200
 
 의 traffic control은 계속 동작해야 한다.
 
-
-
-35\. Acceptance Criteria
-
-
+35. Acceptance Criteria
 
 Traffic Controller는 다음 scenario를 성공적으로 처리해야 한다.
-
-
 
 10 robots
 
@@ -1056,13 +618,7 @@ Traffic Controller는 다음 scenario를 성공적으로 처리해야 한다.
 
 200 robots
 
-
-
-
-
 그리고:
-
-
 
 Normal Traffic
 
@@ -1080,21 +636,11 @@ Controller Restart
 
 Communication Delay
 
-
-
-
-
 를 모두 simulation으로 검증한다.
 
-
-
-36\. Definition of Done
-
-
+36. Definition of Done
 
 Traffic Controller Phase는 다음 조건을 만족해야 한다.
-
-
 
 Event-driven architecture
 
@@ -1123,4 +669,3 @@ Metrics
 Decision logging
 
 200 robot simulation
-

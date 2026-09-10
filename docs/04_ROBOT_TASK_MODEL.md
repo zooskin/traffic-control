@@ -1,108 +1,54 @@
 Traffic Control Software
 
-Robot \& Task Model Specification
+Robot & Task Model Specification
 
-1\. 목적
-
-
+1. 목적
 
 본 문서는 Traffic Controller에서 사용하는 Robot과 Task의 상태 및 lifecycle을 정의한다.
 
-
-
 Traffic Controller의 모든 알고리즘은 Robot의 현재 상태를 기준으로 동작해야 한다.
 
-
-
-2\. Robot 기본 모델
+2. Robot 기본 모델
 
 Robot {
-
-&#x20;   robot\_id
-
-
-
-&#x20;   pose
-
-&#x20;   velocity
-
-&#x20;   heading
-
-
-
-&#x20;   footprint
-
-
-
-&#x20;   status
-
-
-
-&#x20;   current\_node
-
-&#x20;   current\_edge
-
-
-
-&#x20;   current\_task
-
-
-
-&#x20;   route
-
-&#x20;   reservation
-
-
-
-&#x20;   battery
-
-
-
-&#x20;   last\_update
-
-
-
-&#x20;   created\_at
+    robot_id
+    pose
+    velocity
+    heading
+    footprint
+    status
+    current_node
+    current_edge
+    current_task
+    route
+    reservation
+    battery
+    last_update
+    created_at
 
 }
 
-
-
-3\. Robot Pose
+3. Robot Pose
 
 Pose {
-
-&#x20;   x
-
-&#x20;   y
-
-&#x20;   theta
+    x
+    y
+    theta
 
 }
 
-
-
-4\. Robot Footprint
-
-
+4. Robot Footprint
 
 Traffic Controller에서 corridor 및 intersection 점유 판단을 위해 robot 크기를 관리한다.
 
-
-
 Footprint {
-
-&#x20;   length
-
-&#x20;   width
-
-&#x20;   safety\_margin
+    length
+    width
+    safety_margin
 
 }
 
-
-
-5\. Robot Status
+5. Robot Status
 
 IDLE
 
@@ -124,227 +70,131 @@ ARRIVED
 
 FAILED
 
-EMERGENCY\_STOP
+EMERGENCY_STOP
 
-
-
-6\. Robot State Machine
-
-
+6. Robot State Machine
 
 정상 lifecycle:
 
-
-
 IDLE
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 ASSIGNED
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 PLANNING
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 MOVING
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 ARRIVED
-
-&#x20; |
-
-&#x20; v
+  |
+  v
 
 IDLE
 
-
-
-7\. Waiting
-
-
+7. Waiting
 
 Robot이 traffic resource를 사용하지 못하면 WAITING 상태가 된다.
 
-
-
 MOVING
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 WAITING
-
-&#x20;  |
-
-&#x20;  +----> MOVING
-
-
-
-
+   |
+   +----> MOVING
 
 Waiting 상태에서는 다음 정보를 저장한다.
 
+waiting_since
 
+waiting_resource
 
-waiting\_since
+waiting_reason
 
-waiting\_resource
+8. Waiting Reason
 
-waiting\_reason
+RESOURCE_OCCUPIED
 
+HIGHER_PRIORITY_ROBOT
 
+HUMAN_BLOCKAGE
 
-8\. Waiting Reason
-
-RESOURCE\_OCCUPIED
-
-HIGHER\_PRIORITY\_ROBOT
-
-HUMAN\_BLOCKAGE
-
-RESERVATION\_DENIED
+RESERVATION_DENIED
 
 CONGESTION
 
-DEADLOCK\_RECOVERY
+DEADLOCK_RECOVERY
 
-SAFETY\_STOP
+SAFETY_STOP
 
-
-
-9\. Blocked
-
-
+9. Blocked
 
 Robot이 예상 경로에서 일정 시간 이상 진행하지 못하면 BLOCKED 상태가 될 수 있다.
 
-
-
 MOVING
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 BLOCKED
-
-
-
-
 
 Blocked 판단은 configuration으로 관리한다.
 
-
-
 예:
 
+blocked_timeout = 5 sec
 
+minimum_progress = 0.1 m
 
-blocked\_timeout = 5 sec
-
-minimum\_progress = 0.1 m
-
-
-
-10\. Replanning
+10. Replanning
 
 BLOCKED
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 REPLANNING
+   |
+   +----> MOVING
+   |
+   +----> WAITING
+   |
+   +----> RECOVERY
 
-&#x20;  |
-
-&#x20;  +----> MOVING
-
-&#x20;  |
-
-&#x20;  +----> WAITING
-
-&#x20;  |
-
-&#x20;  +----> RECOVERY
-
-
-
-11\. Failed
-
-
+11. Failed
 
 Robot failure:
 
-
-
 MOVING
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 FAILED
-
-
-
-
 
 Failed robot이 점유하고 있던 resource는 상황에 따라 유지하거나 강제 해제할 수 있어야 한다.
 
-
-
 안전한 resource release 여부는 별도의 정책으로 결정한다.
 
-
-
-12\. Task
+12. Task
 
 Task {
-
-&#x20;   task\_id
-
-
-
-&#x20;   pickup\_location
-
-&#x20;   delivery\_location
-
-
-
-&#x20;   priority
-
-
-
-&#x20;   created\_at
-
-&#x20;   deadline
-
-
-
-&#x20;   assigned\_robot
-
-
-
-&#x20;   status
+    task_id
+    pickup_location
+    delivery_location
+    priority
+    created_at
+    deadline
+    assigned_robot
+    status
 
 }
 
-
-
-13\. Task State
+13. Task State
 
 CREATED
 
@@ -360,147 +210,79 @@ FAILED
 
 CANCELLED
 
-
-
-14\. Task State Machine
+14. Task State Machine
 
 CREATED
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 ASSIGNED
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 PLANNED
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 EXECUTING
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 COMPLETED
-
-
-
-
 
 Failure:
 
-
-
 EXECUTING
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 FAILED
 
-
-
-
-
 Cancellation:
 
-
-
 CREATED / ASSIGNED / PLANNED
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 CANCELLED
 
-
-
-15\. Task Priority
-
-
+15. Task Priority
 
 Priority는 숫자로 표현한다.
 
-
-
-priority = 0 \~ 100
-
-
-
-
+priority = 0 ~ 100
 
 높은 숫자가 높은 우선순위를 의미한다.
 
-
-
 단순 priority만 사용하지 않고 waiting time 등을 Traffic Priority에서 별도로 고려한다.
 
-
-
-16\. Task Assignment
-
-
+16. Task Assignment
 
 Task와 Robot assignment는 별도 모듈에서 담당한다.
 
-
-
 Task Manager
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Assignment Engine
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Robot
-
-
-
-
 
 Traffic Controller는 assignment 결과를 받아 route planning을 수행한다.
 
-
-
-17\. Robot Route
-
-
+17. Robot Route
 
 Robot은 현재 route를 가진다.
 
-
-
 Robot
-
-&#x20;|
-
-&#x20;+-- current\_route
-
-&#x20;|
-
-&#x20;+-- current\_route\_index
-
-
-
-
+ |
+ +-- current_route
+ |
+ +-- current_route_index
 
 예:
-
-
 
 Route:
 
@@ -514,217 +296,105 @@ N12
 
 N20
 
-
-
-
-
 현재 위치:
 
+current_route_index = 2
 
-
-current\_route\_index = 2
-
-
-
-18\. Robot Reservation
-
-
+18. Robot Reservation
 
 Robot은 여러 reservation을 가질 수 있다.
 
-
-
 예:
 
-
-
 R01
-
-&#x20;|
-
-&#x20;+-- C01
-
-&#x20;+-- I03
-
-&#x20;+-- C07
-
-
-
-
+ |
+ +-- C01
+ +-- I03
+ +-- C07
 
 Reservation은 시간 순서대로 관리한다.
 
-
-
-19\. Robot Event
-
-
+19. Robot Event
 
 Robot 상태 변경은 event를 생성한다.
 
-
-
 RobotStateChanged
-
-
-
-
 
 예:
 
+robot_id = R01
 
+old_state = MOVING
 
-robot\_id = R01
+new_state = WAITING
 
+reason = RESOURCE_OCCUPIED
 
+resource_id = C01
 
-old\_state = MOVING
-
-new\_state = WAITING
-
-
-
-reason = RESOURCE\_OCCUPIED
-
-resource\_id = C01
-
-
-
-20\. State Update
-
-
+20. State Update
 
 Robot은 주기적으로 상태를 전송한다.
 
-
-
 예:
 
-
-
 RobotStateUpdate {
-
-&#x20;   robot\_id
-
-&#x20;   timestamp
-
-
-
-&#x20;   x
-
-&#x20;   y
-
-&#x20;   theta
-
-
-
-&#x20;   velocity
-
-
-
-&#x20;   current\_node
-
-&#x20;   current\_edge
-
-
-
-&#x20;   battery
-
-
-
-&#x20;   status
+    robot_id
+    timestamp
+    x
+    y
+    theta
+    velocity
+    current_node
+    current_edge
+    battery
+    status
 
 }
 
-
-
-21\. State Timeout
-
-
+21. State Timeout
 
 일정 시간 동안 Robot 상태가 업데이트되지 않으면 timeout 상태를 감지한다.
 
-
-
-last\_update
-
-&#x20;       |
-
-&#x20;       v
+last_update
+        |
+        v
 
 timeout?
+        |
+        +---- YES ---> COMMUNICATION_LOST
 
-&#x20;       |
+COMMUNICATION_LOST는 Robot 내부 상태와 별도로 system event로 관리할 수 있다.
 
-&#x20;       +---- YES ---> COMMUNICATION\_LOST
-
-
-
-
-
-COMMUNICATION\_LOST는 Robot 내부 상태와 별도로 system event로 관리할 수 있다.
-
-
-
-22\. State Consistency
-
-
+22. State Consistency
 
 Traffic Controller가 가진 Robot 상태와 실제 Robot 상태가 다를 수 있다.
 
-
-
 따라서 다음 정보를 관리한다.
 
+controller_timestamp
 
+robot_timestamp
 
-controller\_timestamp
+last_command_id
 
-robot\_timestamp
+last_ack_command_id
 
-last\_command\_id
-
-last\_ack\_command\_id
-
-
-
-23\. Command
-
-
+23. Command
 
 Traffic Controller가 Robot에 보내는 command:
 
-
-
 RobotCommand {
-
-&#x20;   command\_id
-
-&#x20;   robot\_id
-
-
-
-&#x20;   action
-
-
-
-&#x20;   route
-
-&#x20;   target\_node
-
-
-
-&#x20;   created\_at
+    command_id
+    robot_id
+    action
+    route
+    target_node
+    created_at
 
 }
 
-
-
-
-
 Action:
-
-
 
 MOVE
 
@@ -736,23 +406,13 @@ RESUME
 
 REROUTE
 
-GO\_TO\_WAITING\_BAY
-
-
-
-
+GO_TO_WAITING_BAY
 
 Emergency Stop은 일반 Traffic Command와 분리한다.
 
-
-
-24\. Acceptance Criteria
-
-
+24. Acceptance Criteria
 
 다음 기능을 구현해야 한다.
-
-
 
 Robot lifecycle
 
@@ -774,25 +434,24 @@ State transition validation
 
 Event generation
 
-25\. Test Requirements
+25. Test Requirements
 
-test\_robot\_state\_transition
+test_robot_state_transition
 
-test\_invalid\_robot\_transition
+test_invalid_robot_transition
 
-test\_task\_state\_transition
+test_task_state_transition
 
-test\_waiting\_state
+test_waiting_state
 
-test\_blocked\_state
+test_blocked_state
 
-test\_replanning\_state
+test_replanning_state
 
-test\_robot\_timeout
+test_robot_timeout
 
-test\_command\_generation
+test_command_generation
 
-test\_route\_assignment
+test_route_assignment
 
-test\_reservation\_assignment
-
+test_reservation_assignment

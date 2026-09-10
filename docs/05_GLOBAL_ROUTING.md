@@ -2,363 +2,183 @@ Traffic Control Software
 
 Global Route Planner Specification
 
-1\. 목적
-
-
+1. 목적
 
 Global Route Planner는 Robot의 현재 위치에서 Task 목적지까지 이동하기 위한 기본 경로를 계산한다.
 
-
-
 본 모듈은 다음 문제를 해결한다.
-
-
 
 "Robot이 어느 경로를 통해 목적지까지 이동할 것인가?"
 
-
-
 반면 실제 resource를 언제 사용할지는 Traffic Controller와 Reservation Manager가 결정한다.
 
-
-
-2\. 역할 분리
+2. 역할 분리
 
 Global Planner
-
-&#x20;   |
-
-&#x20;   | "어디로?"
-
-&#x20;   v
+    |
+    | "어디로?"
+    v
 
 Route
 
-
-
 Traffic Controller
-
-&#x20;   |
-
-&#x20;   | "언제?"
-
-&#x20;   v
+    |
+    | "언제?"
+    v
 
 Reservation
 
-
-
 Robot Controller
-
-&#x20;   |
-
-&#x20;   | "어떻게?"
-
-&#x20;   v
+    |
+    | "어떻게?"
+    v
 
 Motion
 
-
-
-3\. Initial Algorithm
-
-
+3. Initial Algorithm
 
 기본 알고리즘:
 
-
-
-A\*
-
-
-
-
+A*
 
 Fallback:
 
-
-
 Dijkstra
 
-
-
-4\. A\*
-
-
+4. A*
 
 Graph:
 
-
-
 G = (V, E)
 
-
-
-
-
-A\*:
-
-
+A*:
 
 f(n) = g(n) + h(n)
 
-
-
-
-
 where:
-
-
 
 g(n) = start에서 n까지의 실제 비용
 
 h(n) = n에서 goal까지의 heuristic
 
-
-
-5\. Heuristic
-
-
+5. Heuristic
 
 기본:
 
-
-
 Manhattan Distance
-
-
-
-
 
 또는 map 특성에 따라:
 
-
-
 Euclidean Distance
-
-
-
-
 
 를 사용한다.
 
-
-
 Heuristic은 admissible하도록 설계한다.
 
-
-
-6\. 기본 Cost
-
-
+6. 기본 Cost
 
 초기 버전에서는 다음 cost를 사용한다.
 
-
-
 Cost =
-
-&#x20;   DistanceCost
-
-&#x20; + TravelTimeCost
-
-&#x20; + CongestionCost
-
-&#x20; + WaitingCost
-
-
-
-
+    DistanceCost
+  + TravelTimeCost
+  + CongestionCost
+  + WaitingCost
 
 각 weight는 configuration으로 관리한다.
 
-
-
 cost =
+    w_distance * distance
+  + w_time * travel_time
+  + w_congestion * congestion
+  + w_wait * expected_wait
 
-&#x20;   w\_distance \* distance
+7. Distance Cost
 
-&#x20; + w\_time \* travel\_time
+distance_cost = edge.length
 
-&#x20; + w\_congestion \* congestion
+8. Travel Time
 
-&#x20; + w\_wait \* expected\_wait
+travel_time =
 
+edge.length / edge.speed_limit
 
-
-7\. Distance Cost
-
-distance\_cost = edge.length
-
-
-
-8\. Travel Time
-
-travel\_time =
-
-edge.length / edge.speed\_limit
-
-
-
-9\. Congestion
-
-
+9. Congestion
 
 Resource의 현재 상태를 이용한다.
-
-
 
 congestion =
 
 occupancy / capacity
 
-
-
-
-
 예:
-
-
 
 capacity = 1
 
 occupancy = 1
 
-
-
 congestion = 1.0
 
-
-
-10\. Expected Waiting
-
-
+10. Expected Waiting
 
 Reservation 정보를 기반으로 예상 대기 시간을 계산할 수 있다.
 
-
-
 예:
 
+expected_wait =
 
+next_available_time - current_time
 
-expected\_wait =
-
-next\_available\_time - current\_time
-
-
-
-11\. Route Request
-
-
+11. Route Request
 
 Planner 입력:
 
-
-
 RouteRequest {
-
-&#x20;   robot\_id
-
-
-
-&#x20;   start\_node
-
-&#x20;   goal\_node
-
-
-
-&#x20;   current\_time
-
-
-
-&#x20;   priority
-
-
-
-&#x20;   constraints
+    robot_id
+    start_node
+    goal_node
+    current_time
+    priority
+    constraints
 
 }
 
-
-
-12\. Route Response
+12. Route Response
 
 RouteResponse {
-
-&#x20;   route\_id
-
-
-
-&#x20;   robot\_id
-
-
-
-&#x20;   nodes
-
-&#x20;   edges
-
-
-
-&#x20;   total\_distance
-
-&#x20;   estimated\_time
-
-
-
-&#x20;   cost
-
-
-
-&#x20;   planner
-
-
-
-&#x20;   created\_at
+    route_id
+    robot_id
+    nodes
+    edges
+    total_distance
+    estimated_time
+    cost
+    planner
+    created_at
 
 }
 
-
-
-13\. Route Failure
-
-
+13. Route Failure
 
 목적지까지 경로가 존재하지 않으면:
 
-
-
-NO\_ROUTE
-
-
-
-
+NO_ROUTE
 
 를 반환한다.
 
-
-
 Traffic Controller는 다음 정책을 수행할 수 있다.
-
-
 
 WAIT
 
 RETRY
 
-ALTERNATIVE\_GOAL
+ALTERNATIVE_GOAL
 
-TASK\_FAILED
+TASK_FAILED
 
-
-
-14\. Dynamic Replanning
-
-
+14. Dynamic Replanning
 
 다음 상황에서 route를 재계산할 수 있다.
-
-
 
 Human blockage
 
@@ -374,193 +194,101 @@ Reservation conflict
 
 Deadlock recovery
 
-
-
-15\. Replanning 범위
-
-
+15. Replanning 범위
 
 전체 fleet을 동시에 replanning하지 않는다.
 
-
-
 우선 affected robot만 대상으로 한다.
 
-
-
 Blocked Resource
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Affected Robots
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Replanning
 
-
-
-16\. Route Stability
-
-
+16. Route Stability
 
 Traffic이 조금 변했다고 매번 route를 변경하면 route oscillation이 발생할 수 있다.
 
-
-
 따라서 route 변경에는 최소 개선 조건을 둔다.
 
+예:
 
+new_cost < old_cost * (1 - minimum_improvement)
 
 예:
 
-
-
-new\_cost < old\_cost \* (1 - minimum\_improvement)
-
-
-
-
-
-예:
-
-
-
-minimum\_improvement = 0.10
-
-
-
-
+minimum_improvement = 0.10
 
 즉 10% 이상 개선되는 경우에만 route 변경을 허용하는 정책을 사용할 수 있다.
 
-
-
-17\. Route Hysteresis
-
-
+17. Route Hysteresis
 
 짧은 시간 안에:
 
-
-
 Route A
-
 → Route B
-
 → Route A
-
-
-
-
 
 가 반복되지 않도록 한다.
 
-
-
 관리 값:
 
+minimum_route_hold_time
 
-
-minimum\_route\_hold\_time
-
-
-
-18\. Route Constraint
-
-
+18. Route Constraint
 
 Planner는 다음 constraint를 받을 수 있어야 한다.
 
+blocked_edges
 
+blocked_nodes
 
-blocked\_edges
+blocked_resources
 
-blocked\_nodes
+forbidden_resources
 
-blocked\_resources
-
-forbidden\_resources
-
-preferred\_resources
-
-
-
-
+preferred_resources
 
 예:
 
+blocked_edges = [E12, E13]
 
+19. Reservation-Aware Planning
 
-blocked\_edges = \[E12, E13]
+초기 버전에서는 A*와 Reservation을 분리한다.
 
-
-
-19\. Reservation-Aware Planning
-
-
-
-초기 버전에서는 A\*와 Reservation을 분리한다.
-
-
-
-A\*
-
-&#x20;↓
+A*
+ ↓
 
 Route
-
-&#x20;↓
+ ↓
 
 Reservation
 
-
-
-
-
 이후 필요할 경우:
 
-
-
-Reservation-aware A\*
-
-
-
-
+Reservation-aware A*
 
 로 확장한다.
 
+20. Planning API
 
+plan_route(request)
 
-20\. Planning API
+replan_route(request)
 
-plan\_route(request)
+estimate_route_cost(route)
 
+is_route_valid(route)
 
-
-replan\_route(request)
-
-
-
-estimate\_route\_cost(route)
-
-
-
-is\_route\_valid(route)
-
-
-
-21\. Performance
-
-
+21. Performance
 
 Planning latency를 측정한다.
-
-
 
 P50
 
@@ -568,13 +296,7 @@ P95
 
 P99
 
-
-
-
-
 Robot scale:
-
-
 
 10
 
@@ -586,15 +308,9 @@ Robot scale:
 
 200
 
-
-
-22\. Determinism
-
-
+22. Determinism
 
 동일한:
-
-
 
 Map
 
@@ -606,77 +322,45 @@ Cost
 
 Constraints
 
-
-
-
-
 를 입력하면 동일한 route가 생성되어야 한다.
-
-
 
 동일 cost의 route가 여러 개일 경우 deterministic tie-breaker를 사용한다.
 
-
-
 예:
 
+edge_id
 
-
-edge\_id
-
-node\_id
-
-
-
-
+node_id
 
 순으로 비교한다.
 
-
-
-23\. Logging
-
-
+23. Logging
 
 모든 planning request는 다음을 기록한다.
 
-
-
-robot\_id
+robot_id
 
 start
 
 goal
 
-
-
 planner
 
+old_route
 
-
-old\_route
-
-new\_route
-
-
+new_route
 
 cost
 
-planning\_latency
-
-
+planning_latency
 
 constraints
 
-
-
 reason
 
+24. Acceptance Criteria
 
-
-24\. Acceptance Criteria
-
-A\* 구현
+A* 구현
 
 Dijkstra fallback
 
@@ -698,29 +382,28 @@ Performance benchmark
 
 Planning logging
 
-25\. Test Requirements
+25. Test Requirements
 
-test\_astar\_basic
+test_astar_basic
 
-test\_astar\_shortest\_path
+test_astar_shortest_path
 
-test\_dijkstra
+test_dijkstra
 
-test\_unreachable\_goal
+test_unreachable_goal
 
-test\_blocked\_edge
+test_blocked_edge
 
-test\_blocked\_node
+test_blocked_node
 
-test\_congestion\_cost
+test_congestion_cost
 
-test\_waiting\_cost
+test_waiting_cost
 
-test\_route\_validation
+test_route_validation
 
-test\_deterministic\_route
+test_deterministic_route
 
-test\_replanning
+test_replanning
 
-test\_route\_hysteresis
-
+test_route_hysteresis

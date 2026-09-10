@@ -2,141 +2,79 @@ Traffic Control Software
 
 Domain Model Specification
 
-1\. Purpose
-
-
+1. Purpose
 
 본 문서는 Multi-Robot Traffic Control Software에서 사용하는 핵심 Domain Entity와 Value Object를 정의한다.
 
-
-
 Domain Model은 Infrastructure와 분리한다.
 
-
-
-2\. Domain Overview
+2. Domain Overview
 
 Robot
-
-&#x20; |
-
-&#x20; +---- RobotState
-
-&#x20; |
-
-&#x20; +---- Task
-
-&#x20; |
-
-&#x20; +---- Route
-
-&#x20; |
-
-&#x20; +---- Reservation
-
-&#x20; |
-
-&#x20; +---- Conflict
-
-&#x20; |
-
-&#x20; +---- TrafficDecision
-
-
-
-
+  |
+  +---- RobotState
+  |
+  +---- Task
+  |
+  +---- Route
+  |
+  +---- Reservation
+  |
+  +---- Conflict
+  |
+  +---- TrafficDecision
 
 Map:
 
-
-
 Map
+ |
+ +---- Node
+ |
+ +---- Edge
+ |
+ +---- Corridor
+ |
+ +---- Intersection
 
-&#x20;|
-
-&#x20;+---- Node
-
-&#x20;|
-
-&#x20;+---- Edge
-
-&#x20;|
-
-&#x20;+---- Corridor
-
-&#x20;|
-
-&#x20;+---- Intersection
-
-
-
-3\. Robot
-
-
+3. Robot
 
 Robot은 실제 Fleet의 이동 주체다.
 
-
-
 Robot
-
-├── robot\_id
-
+├── robot_id
 ├── state
-
-├── current\_task
-
-├── current\_route
-
+├── current_task
+├── current_route
 └── capabilities
 
-
-
-
-
-필수 식별자는 robot\_id다.
-
-
+필수 식별자는 robot_id다.
 
 Robot Entity는 Vendor SDK에 의존하지 않는다.
 
-
-
-4\. RobotState
-
-
+4. RobotState
 
 Robot의 현재 상태를 표현한다.
 
-
-
-robot\_id
+robot_id
 
 position
-
 velocity
 
-current\_node
+current_node
 
-current\_edge
+current_edge
 
-current\_task
+current_task
 
-current\_route
+current_route
 
 state
 
 timestamp
 
-state\_version
-
-
-
-
+state_version
 
 State:
-
-
 
 MOVING
 
@@ -144,7 +82,7 @@ IDLE
 
 WAITING
 
-TEMPORARILY\_STOPPED
+TEMPORARILY_STOPPED
 
 BLOCKED
 
@@ -152,65 +90,37 @@ FAILED
 
 UNKNOWN
 
-
-
-5\. RobotState Transition
-
-
+5. RobotState Transition
 
 권장 Transition:
 
-
-
 IDLE
-
-&#x20;|
-
-&#x20;v
+ |
+ v
 
 MOVING
-
-&#x20;|
-
-&#x20;+----> WAITING
-
-&#x20;|
-
-&#x20;+----> TEMPORARILY\_STOPPED
-
-&#x20;|
-
-&#x20;+----> BLOCKED
-
-&#x20;|
-
-&#x20;+----> FAILED
-
-&#x20;|
-
-&#x20;v
+ |
+ +----> WAITING
+ |
+ +----> TEMPORARILY_STOPPED
+ |
+ +----> BLOCKED
+ |
+ +----> FAILED
+ |
+ v
 
 IDLE
-
-
-
-
 
 잘못된 Transition은 명시적으로 거부할 수 있어야 한다.
 
-
-
-6\. Task
-
-
+6. Task
 
 Robot에게 주어진 작업이다.
 
+task_id
 
-
-task\_id
-
-robot\_id
+robot_id
 
 source
 
@@ -222,15 +132,9 @@ deadline
 
 status
 
-created\_at
-
-
-
-
+created_at
 
 Task State:
-
-
 
 CREATED
 
@@ -248,29 +152,17 @@ CANCELLED
 
 FAILED
 
-
-
-7\. Node
-
-
+7. Node
 
 Graph의 위치 단위다.
 
-
-
-node\_id
+node_id
 
 position
 
 type
 
-
-
-
-
 Node Type 예:
-
-
 
 NORMAL
 
@@ -284,21 +176,15 @@ UNLOADING
 
 HOLDING
 
-
-
-8\. Edge
-
-
+8. Edge
 
 두 Node를 연결하는 이동 경로다.
 
+edge_id
 
+from_node
 
-edge\_id
-
-from\_node
-
-to\_node
+to_node
 
 length
 
@@ -306,19 +192,13 @@ width
 
 direction
 
-speed\_limit
+speed_limit
 
 capacity
 
-resource\_id
-
-
-
-
+resource_id
 
 Direction:
-
-
 
 FORWARD
 
@@ -326,25 +206,17 @@ REVERSE
 
 BIDIRECTIONAL
 
-
-
-9\. Corridor
-
-
+9. Corridor
 
 좁고 긴 이동 영역이다.
 
-
-
 Corridor는 Traffic Resource로 취급할 수 있다.
 
+corridor_id
 
+entry_node
 
-corridor\_id
-
-entry\_node
-
-exit\_node
+exit_node
 
 length
 
@@ -354,121 +226,75 @@ capacity
 
 direction
 
-
-
-
-
 필요한 경우 내부 Edge 여러 개를 하나의 Corridor Resource로 묶을 수 있다.
 
-
-
-10\. Intersection
-
-
+10. Intersection
 
 여러 이동 경로가 만나는 영역이다.
 
+intersection_id
 
+connected_nodes
 
-intersection\_id
-
-connected\_nodes
-
-connected\_edges
+connected_edges
 
 capacity
 
-
-
-
-
 Intersection은 Conflict Detection과 Reservation의 주요 대상이다.
 
-
-
-11\. Route
-
-
+11. Route
 
 Robot이 이동할 경로다.
 
+route_id
 
+robot_id
 
-route\_id
-
-robot\_id
-
-map\_version
+map_version
 
 nodes
 
 edges
 
-created\_at
+created_at
 
-expires\_at
-
-
-
-
+expires_at
 
 Route에는 Version을 부여할 수 있다.
 
-
-
-12\. Route Segment
-
-
+12. Route Segment
 
 Route의 개별 이동 단위다.
 
-
-
-edge\_id
+edge_id
 
 sequence
 
-expected\_entry\_time
+expected_entry_time
 
-expected\_exit\_time
-
-
-
-
+expected_exit_time
 
 이를 기반으로 Temporal Conflict를 검출할 수 있다.
 
-
-
-13\. Reservation
-
-
+13. Reservation
 
 Robot이 특정 Resource를 사용할 권리를 예약한 것이다.
 
+reservation_id
 
+robot_id
 
-reservation\_id
+resource_id
 
-robot\_id
+start_time
 
-resource\_id
-
-start\_time
-
-end\_time
+end_time
 
 priority
 
 state
 
-
-
-
-
 State:
-
-
 
 PENDING
 
@@ -480,19 +306,11 @@ EXPIRED
 
 CANCELLED
 
-
-
-14\. Resource
-
-
+14. Resource
 
 Traffic Control에서 경쟁적으로 사용되는 자원이다.
 
-
-
 예:
-
-
 
 NODE
 
@@ -502,163 +320,108 @@ CORRIDOR
 
 INTERSECTION
 
-CHARGING\_AREA
+CHARGING_AREA
 
-LOADING\_AREA
+LOADING_AREA
 
+Resource에는 고유한 resource_id가 있어야 한다.
 
-
-
-
-Resource에는 고유한 resource\_id가 있어야 한다.
-
-
-
-15\. Conflict
-
-
+15. Conflict
 
 둘 이상의 Robot이 동시에 특정 Resource를 사용할 수 없는 상황이다.
 
-
-
 Conflict
-
-├── conflict\_id
-
-├── robot\_a
-
-├── robot\_b
-
+├── conflict_id
+├── robot_a
+├── robot_b
 ├── resource
-
-├── conflict\_type
-
+├── conflict_type
 ├── severity
+└── detected_at
 
-└── detected\_at
+16. Conflict Type
 
+NODE_CONFLICT
 
+EDGE_CONFLICT
 
-16\. Conflict Type
-
-NODE\_CONFLICT
-
-EDGE\_CONFLICT
-
-HEAD\_ON
+HEAD_ON
 
 CROSSING
 
-CORRIDOR\_CONFLICT
+CORRIDOR_CONFLICT
 
-RESOURCE\_CONFLICT
+RESOURCE_CONFLICT
 
-TEMPORAL\_CONFLICT
+TEMPORAL_CONFLICT
 
-
-
-17\. Priority
-
-
+17. Priority
 
 Traffic Decision에 사용되는 우선순위다.
 
-
-
 Input:
 
+base_priority
 
-
-base\_priority
-
-waiting\_time
+waiting_time
 
 deadline
 
-blocking\_impact
+blocking_impact
 
-task\_priority
-
-
-
-
+task_priority
 
 Output:
 
-
-
-effective\_priority
-
-
-
-
+effective_priority
 
 Priority는 가능한 경우 deterministic해야 한다.
 
-
-
-18\. TrafficEvent
-
-
+18. TrafficEvent
 
 Traffic Control을 동작시키는 입력이다.
 
+event_id
 
-
-event\_id
-
-event\_type
+event_type
 
 timestamp
 
-robot\_id
+robot_id
 
-state\_version
+state_version
 
-map\_version
+map_version
 
 payload
 
-
-
-
-
 Event Type:
 
+ROBOT_STATE_UPDATED
 
+ROBOT_STOPPED
 
-ROBOT\_STATE\_UPDATED
+ROBOT_BLOCKED
 
-ROBOT\_STOPPED
+ROBOT_RECOVERED
 
-ROBOT\_BLOCKED
+TASK_CREATED
 
-ROBOT\_RECOVERED
+TASK_COMPLETED
 
-TASK\_CREATED
+TASK_CANCELLED
 
-TASK\_COMPLETED
+RESERVATION_EXPIRED
 
-TASK\_CANCELLED
+MAP_UPDATED
 
-RESERVATION\_EXPIRED
-
-MAP\_UPDATED
-
-
-
-19\. TrafficDecision
-
-
+19. TrafficDecision
 
 Traffic Controller가 생성하는 최종 Traffic 명령이다.
 
+decision_id
 
-
-decision\_id
-
-robot\_id
+robot_id
 
 action
 
@@ -668,17 +431,11 @@ reservation
 
 reason
 
-created\_at
+created_at
 
-state\_version
-
-
-
-
+state_version
 
 Action:
-
-
 
 GO
 
@@ -692,27 +449,21 @@ HOLD
 
 RECOVER
 
-
-
-20\. PlanningRequest
-
-
+20. PlanningRequest
 
 Planner에 전달되는 입력이다.
 
+request_id
 
+robot_ids
 
-request\_id
-
-robot\_ids
-
-start\_states
+start_states
 
 goals
 
-map\_version
+map_version
 
-traffic\_state\_version
+traffic_state_version
 
 reservations
 
@@ -722,39 +473,27 @@ deadline
 
 timeout
 
-
-
-21\. PlanningResult
-
-
+21. PlanningResult
 
 Planner가 반환하는 결과다.
 
-
-
-request\_id
+request_id
 
 status
 
 routes
 
-map\_version
+map_version
 
-traffic\_state\_version
+traffic_state_version
 
-planning\_time
-
-
-
-
+planning_time
 
 Status:
 
-
-
 SUCCESS
 
-NO\_PATH
+NO_PATH
 
 TIMEOUT
 
@@ -762,17 +501,11 @@ CANCELLED
 
 FAILED
 
-
-
-22\. Deadlock
-
-
+22. Deadlock
 
 둘 이상의 Robot이 서로의 진행을 막아 영구적으로 진행하지 못하는 상태다.
 
-
-
-deadlock\_id
+deadlock_id
 
 robots
 
@@ -780,115 +513,79 @@ resources
 
 type
 
-detected\_at
+detected_at
 
 status
-
-
-
-
 
 Type:
 
+RESOURCE_DEADLOCK
 
+CORRIDOR_DEADLOCK
 
-RESOURCE\_DEADLOCK
+HEAD_ON_DEADLOCK
 
-CORRIDOR\_DEADLOCK
+CYCLE_DEADLOCK
 
-HEAD\_ON\_DEADLOCK
-
-CYCLE\_DEADLOCK
-
-
-
-23\. DeadlockRecovery
-
-
+23. DeadlockRecovery
 
 Deadlock 해소 작업이다.
 
+recovery_id
 
-
-recovery\_id
-
-deadlock\_id
+deadlock_id
 
 strategy
 
-target\_robots
+target_robots
 
 status
 
-created\_at
-
-
-
-
+created_at
 
 Strategy:
 
-
-
 REPLAN
 
-CHANGE\_PRIORITY
+CHANGE_PRIORITY
 
 BACKTRACK
 
-RELEASE\_RESOURCE
+RELEASE_RESOURCE
 
-MOVE\_TO\_HOLDING
+MOVE_TO_HOLDING
 
-HUMAN\_INTERVENTION
+HUMAN_INTERVENTION
 
-
-
-24\. HumanBlockage
-
-
+24. HumanBlockage
 
 Human 또는 Human Activity에 의해 Traffic Resource가 막힌 상태다.
 
+blockage_id
 
+resource_id
 
-blockage\_id
+detected_at
 
-resource\_id
-
-detected\_at
-
-estimated\_duration
+estimated_duration
 
 confidence
 
 status
 
-
-
-
-
 Status:
-
-
 
 FREE
 
-TEMPORARILY\_BLOCKED
+TEMPORARILY_BLOCKED
 
-LONG\_BLOCKED
+LONG_BLOCKED
 
 UNKNOWN
 
-
-
-25\. Value Objects
-
-
+25. Value Objects
 
 가능한 경우 다음을 Value Object로 정의한다.
-
-
 
 RobotId
 
@@ -914,17 +611,11 @@ Duration
 
 Priority
 
-26\. ID Rules
-
-
+26. ID Rules
 
 ID는 Domain 내에서 고유해야 한다.
 
-
-
 예:
-
-
 
 R001
 
@@ -936,25 +627,13 @@ CORRIDOR-01
 
 RES-00001
 
-
-
-
-
 실제 형식은 Implementation 단계에서 결정한다.
 
-
-
-27\. Time Model
-
-
+27. Time Model
 
 Traffic Planning에서는 시간 정보가 중요하다.
 
-
-
 가능하면 다음을 구분한다.
-
-
 
 Timestamp
 
@@ -966,21 +645,11 @@ ExpectedExitTime
 
 Deadline
 
-
-
-
-
 모든 시간은 동일한 기준을 사용한다.
 
-
-
-28\. Version Model
-
-
+28. Version Model
 
 다음 Entity에는 Version을 사용할 수 있어야 한다.
-
-
 
 RobotState
 
@@ -994,77 +663,42 @@ PlanningRequest
 
 PlanningResult
 
-
-
-
-
 Version은 Stale Result를 방지하는 데 사용한다.
 
-
-
-29\. Entity Relationship
+29. Entity Relationship
 
 Robot
-
-&#x20;|
-
-&#x20;+---- Task
-
-&#x20;|
-
-&#x20;+---- RobotState
-
-&#x20;|
-
-&#x20;+---- Route
-
-&#x20;|       |
-
-&#x20;|       +---- Edge
-
-&#x20;|
-
-&#x20;+---- Reservation
-
-&#x20;        |
-
-&#x20;        +---- Resource
-
-
+ |
+ +---- Task
+ |
+ +---- RobotState
+ |
+ +---- Route
+ |       |
+ |       +---- Edge
+ |
+ +---- Reservation
+         |
+         +---- Resource
 
 Robot + Route + Reservation
+          |
+          v
+       Conflict
+          |
+          v
+       Priority
+          |
+          v
+    TrafficDecision
 
-&#x20;         |
-
-&#x20;         v
-
-&#x20;      Conflict
-
-&#x20;         |
-
-&#x20;         v
-
-&#x20;      Priority
-
-&#x20;         |
-
-&#x20;         v
-
-&#x20;   TrafficDecision
-
-
-
-30\. Domain Invariants
-
-
+30. Domain Invariants
 
 다음 조건은 항상 만족해야 한다.
 
-
-
 Robot
 
-robot\_id는 unique
+robot_id는 unique
 
 Robot은 하나의 current state를 가진다.
 
@@ -1086,13 +720,9 @@ Route는 유효한 Map Version을 참조한다.
 
 Route의 Node/Edge 연결이 유효해야 한다.
 
-31\. Domain vs Infrastructure
-
-
+31. Domain vs Infrastructure
 
 Domain에서 직접 의존하지 않는다.
-
-
 
 Database
 
@@ -1106,145 +736,80 @@ Vendor SDK
 
 Filesystem
 
-
-
-
-
 예:
-
-
 
 나쁜 구조:
 
-
-
 Robot
-
-&#x20;|
-
-&#x20;+-- ROS API
-
-&#x20;+-- Database
-
-
-
-
+ |
+ +-- ROS API
+ +-- Database
 
 좋은 구조:
 
-
-
 Robot
-
-&#x20;|
+ |
 
 Robot Domain
-
-&#x20;|
+ |
 
 Adapter / Repository
-
-&#x20;|
+ |
 
 Infrastructure
 
-
-
-32\. Serialization
-
-
+32. Serialization
 
 Domain Object 자체에 Serialization 책임을 과도하게 넣지 않는다.
 
-
-
 권장:
 
-
-
 Domain Object
-
-&#x20;     |
+      |
 
 Mapper
-
-&#x20;     |
+      |
 
 DTO / Proto
-
-&#x20;     |
+      |
 
 Network
 
-
-
-33\. Equality
-
-
+33. Equality
 
 ID가 있는 Entity는 기본적으로 Identity를 기준으로 비교한다.
 
-
-
 Value Object는 Value Equality를 사용한다.
 
-
-
 예:
-
-
 
 RobotId("R01") == RobotId("R01")
 
-
-
-34\. Domain Validation
-
-
+34. Domain Validation
 
 Invalid State는 생성 단계에서 가능한 한 방지한다.
 
-
-
 예:
-
-
 
 Reservation:
 
-start\_time < end\_time
-
-
+start_time < end_time
 
 Route:
 
 nodes != empty
 
-
-
 Task:
 
 source != destination
 
-
-
-
-
 실제 규칙은 Traffic Specification과 일치해야 한다.
 
-
-
-35\. Domain Evolution
-
-
+35. Domain Evolution
 
 Domain Model 변경은 기존 데이터와 API에 영향을 줄 수 있다.
 
-
-
 변경 시:
-
-
 
 Compatibility 확인
 
@@ -1254,17 +819,11 @@ Test 수정
 
 Migration 필요성 확인
 
-36\. Final Principle
-
-
+36. Final Principle
 
 Domain Model은 Traffic Control의 공통 언어다.
 
-
-
 다음 Component들이 동일한 Domain 의미를 사용해야 한다.
-
-
 
 Traffic Controller
 
@@ -1280,9 +839,4 @@ Simulation
 
 Monitoring
 
-
-
-
-
 Domain의 의미를 Component마다 다르게 정의하지 않는다.
-

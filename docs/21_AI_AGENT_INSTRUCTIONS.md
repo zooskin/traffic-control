@@ -203,10 +203,8 @@ class IRoutePlanner {
 public:
     virtual PlanningResult plan(
         const PlanningRequest& request) = 0;
-
     virtual ~IRoutePlanner() = default;
 };
-
 
 Interface는 다음을 고려하여 설계한다.
 
@@ -521,7 +519,6 @@ Random Algorithm을 사용할 경우 Seed를 외부에서 주입한다.
 예:
 
 Planner planner(seed);
-
 
 가능하면 동일한 Input과 Seed에서 동일한 결과가 나오도록 한다.
 

@@ -2,33 +2,21 @@ Traffic Control Software
 
 Multi-Robot Algorithm Benchmark Specification
 
-1\. 목적
+1. 목적
 
-
-
-100\~200 Robot Traffic Control 환경에 적합한 Multi-Agent Path Finding 및 Traffic Coordination 알고리즘을 실험적으로 선정한다.
-
-
+100~200 Robot Traffic Control 환경에 적합한 Multi-Agent Path Finding 및 Traffic Coordination 알고리즘을 실험적으로 선정한다.
 
 알고리즘을 처음부터 하나로 확정하지 않는다.
 
-
-
 Benchmark 결과를 기준으로 선택한다.
 
-
-
-2\. 후보 알고리즘
-
-
+2. 후보 알고리즘
 
 최소 다음을 비교한다.
 
+A*
 
-
-A\*
-
-WHCA\*
+WHCA*
 
 PIBT
 
@@ -38,11 +26,9 @@ CBS
 
 Prioritized Planning
 
-Reservation-based A\*
+Reservation-based A*
 
-
-
-3\. 평가 환경
+3. 평가 환경
 
 Scenario A
 
@@ -50,15 +36,11 @@ Scenario A
 
 Low traffic
 
-
-
 Scenario B
 
 50 robots
 
 Medium traffic
-
-
 
 Scenario C
 
@@ -66,23 +48,15 @@ Scenario C
 
 High traffic
 
-
-
 Scenario D
 
 200 robots
 
 Very high traffic
 
-
-
-4\. Map Characteristics
-
-
+4. Map Characteristics
 
 실제 환경을 최대한 반영한다.
-
-
 
 Long corridor
 
@@ -96,15 +70,9 @@ Waiting bays
 
 Shared human areas
 
-
-
-5\. Dynamic Obstacle Scenario
-
-
+5. Dynamic Obstacle Scenario
 
 Robot 외에 다음 장애물을 넣는다.
-
-
 
 Human
 
@@ -114,15 +82,9 @@ Temporary Blockage
 
 Permanent Blockage
 
-
-
-6\. Task Generation
-
-
+6. Task Generation
 
 Task는 random뿐 아니라 실제 workload distribution을 사용한다.
-
-
 
 Source distribution
 
@@ -132,9 +94,7 @@ Priority distribution
 
 Task arrival rate
 
-
-
-7\. Metrics
+7. Metrics
 
 Planning
 
@@ -146,8 +106,6 @@ P95
 
 P99
 
-
-
 Traffic
 
 Throughput
@@ -158,15 +116,11 @@ Average waiting time
 
 P95 waiting time
 
-
-
 Stability
 
 Route change count
 
 Replanning count
-
-
 
 Safety
 
@@ -178,9 +132,7 @@ Deadlock count
 
 Recovery failure
 
-
-
-8\. Computational Metrics
+8. Computational Metrics
 
 CPU usage
 
@@ -190,15 +142,9 @@ Planner queue length
 
 Event processing latency
 
-
-
-9\. Scalability Test
-
-
+9. Scalability Test
 
 다음 Robot count를 테스트한다.
-
-
 
 10
 
@@ -216,23 +162,13 @@ Event processing latency
 
 500
 
+300~500은 architecture scalability 검증용이다.
 
+10. Algorithm Expectations
 
-
-
-300\~500은 architecture scalability 검증용이다.
-
-
-
-10\. Algorithm Expectations
-
-A\*
-
-
+A*
 
 장점:
-
-
 
 단순
 
@@ -240,19 +176,11 @@ A\*
 
 구현 용이
 
-
-
 단점:
-
-
 
 multi-robot coordination 부족
 
-
-
 사용:
-
-
 
 Baseline
 
@@ -260,49 +188,29 @@ Single Robot
 
 Fallback Planner
 
-
-
-11\. Prioritized Planning
-
-
+11. Prioritized Planning
 
 장점:
-
-
 
 구현 간단
 
 빠름
 
-
-
 단점:
-
-
 
 priority ordering에 따라 결과가 크게 달라짐
 
 deadlock 가능
 
-
-
 사용:
-
-
 
 Baseline
 
 Low traffic
 
-
-
-12\. WHCA\*
-
-
+12. WHCA*
 
 장점:
-
-
 
 multi-agent
 
@@ -310,31 +218,17 @@ rolling horizon
 
 실시간 환경에 비교적 적합
 
-
-
 단점:
-
-
 
 window 크기 tuning 필요
 
-
-
 Priority:
-
-
 
 HIGH CANDIDATE
 
-
-
-13\. PIBT
-
-
+13. PIBT
 
 장점:
-
-
 
 빠른 online MAPF
 
@@ -342,49 +236,27 @@ HIGH CANDIDATE
 
 decentralized 성격
 
-
-
 단점:
-
-
 
 환경 특성에 따른 tuning 필요
 
-
-
 Priority:
-
-
 
 HIGH CANDIDATE
 
-
-
-14\. CBS
-
-
+14. CBS
 
 장점:
-
-
 
 높은 solution quality
 
 conflict resolution 명확
 
-
-
 단점:
-
-
 
 agent 증가 시 computational cost 증가
 
-
-
 사용:
-
-
 
 Benchmark
 
@@ -392,29 +264,17 @@ Small/medium fleet
 
 Offline comparison
 
-
-
-15\. ECBS
-
-
+15. ECBS
 
 CBS의 bounded-suboptimal variant.
 
-
-
 장점:
-
-
 
 CBS보다 빠를 수 있음
 
 solution quality 제어 가능
 
-
-
 사용:
-
-
 
 Benchmark
 
@@ -422,103 +282,60 @@ Medium fleet
 
 Selective replanning
 
-
-
-16\. 권장 초기 구조
-
-
+16. 권장 초기 구조
 
 실제 production에서는 하나의 planner만 사용하는 것을 목표로 하지 않는다.
 
-
-
 권장:
+                  Traffic Controller
+                         |
+                 +-------+-------+
+                 |               |
+          Online Planner    Recovery Planner
+                 |               |
+               PIBT/WHCA*      ECBS/A*
 
-
-
-&#x20;                 Traffic Controller
-
-&#x20;                        |
-
-&#x20;                +-------+-------+
-
-&#x20;                |               |
-
-&#x20;         Online Planner    Recovery Planner
-
-&#x20;                |               |
-
-&#x20;              PIBT/WHCA\*      ECBS/A\*
-
-
-
-17\. Hybrid Planning
-
-
+17. Hybrid Planning
 
 권장 초기 실험 구조:
 
-
-
 Global Route
+     |
+     v
 
-&#x20;    |
-
-&#x20;    v
-
-A\* / weighted A\*
-
-&#x20;    |
-
-&#x20;    v
+A* / weighted A*
+     |
+     v
 
 Traffic Coordination
+     |
+     v
 
-&#x20;    |
-
-&#x20;    v
-
-PIBT / WHCA\*
-
-&#x20;    |
-
-&#x20;    v
+PIBT / WHCA*
+     |
+     v
 
 Reservation
 
-
-
-18\. Planner Selection Rule
-
-
+18. Planner Selection Rule
 
 초기에는 다음 후보를 우선 benchmark한다.
 
+1. PIBT
 
+2. WHCA*
 
-1\. PIBT
+3. Prioritized Planning
 
-2\. WHCA\*
+4. ECBS
 
-3\. Prioritized Planning
+5. CBS
 
-4\. ECBS
-
-5\. CBS
-
-
-
-19\. Dynamic Environment Test
-
-
+19. Dynamic Environment Test
 
 Human blockage를 random하게 발생시킨다.
 
-
-
 예:
-
-
 
 Blockage probability:
 
@@ -530,15 +347,9 @@ Blockage probability:
 
 20%
 
-
-
-20\. Long Corridor Test
-
-
+20. Long Corridor Test
 
 Corridor length:
-
-
 
 10 cells
 
@@ -548,15 +359,9 @@ Corridor length:
 
 100 cells
 
-
-
-21\. Low Detour Test
-
-
+21. Low Detour Test
 
 Alternative route 수:
-
-
 
 0
 
@@ -564,15 +369,9 @@ Alternative route 수:
 
 2
 
-
-
-22\. Deadlock Test
-
-
+22. Deadlock Test
 
 의도적으로 conflict를 생성한다.
-
-
 
 Head-on
 
@@ -584,9 +383,7 @@ Chain
 
 Cycle
 
-
-
-23\. Stress Test
+23. Stress Test
 
 200 robots
 
@@ -596,133 +393,76 @@ High task arrival rate
 
 5% robot failure
 
-
-
-24\. Acceptance Target
-
-
+24. Acceptance Target
 
 초기 목표:
-
-
 
 200 robots
 
 P95 controller decision < 100 ms
 
-
-
 Deadlock rate:
 
 as close to 0 as possible
-
-
 
 Collision:
 
 0
 
-
-
 Planner timeout:
-
 < 1%
-
-
-
-
 
 실제 target은 benchmark 결과를 기준으로 조정한다.
 
-
-
-25\. Selection Score
-
-
+25. Selection Score
 
 알고리즘 종합 점수:
 
-
-
 score =
-
-&#x20;   0.30 \* throughput
-
-&#x20; + 0.20 \* latency
-
-&#x20; + 0.20 \* waiting\_time
-
-&#x20; + 0.15 \* deadlock\_performance
-
-&#x20; + 0.10 \* route\_stability
-
-&#x20; + 0.05 \* resource\_usage
-
-
-
-
+    0.30 * throughput
+  + 0.20 * latency
+  + 0.20 * waiting_time
+  + 0.15 * deadlock_performance
+  + 0.10 * route_stability
+  + 0.05 * resource_usage
 
 Safety violation이 발생한 알고리즘은 종합 점수와 무관하게 탈락시킨다.
 
-
-
-26\. Benchmark Output
-
-
+26. Benchmark Output
 
 각 알고리즘에 대해:
 
-
-
 algorithm
 
-robot\_count
+robot_count
 
 scenario
 
-
-
 throughput
 
-travel\_time
+travel_time
 
-waiting\_time
+waiting_time
 
-
-
-planning\_latency
+planning_latency
 
 CPU
 
 memory
 
+deadlock_count
 
+replanning_count
 
-deadlock\_count
-
-replanning\_count
-
-route\_change\_count
-
-
-
-
+route_change_count
 
 을 저장한다.
 
-
-
-27\. 최종 선택 기준
-
-
+27. 최종 선택 기준
 
 최종 알고리즘은 단순히 평균 성능이 가장 좋은 것을 선택하지 않는다.
 
-
-
 다음을 모두 고려한다.
-
-
 
 Performance
 
@@ -738,35 +478,16 @@ Implementation complexity
 
 Operational predictability
 
-
-
-28\. 중요한 원칙
-
-
+28. 중요한 원칙
 
 Benchmark에서 좋은 결과가 나온 알고리즘도 실제 현장에서는 반드시 재검증한다.
 
-
-
 Simulation:
-
-
 
 Model
 
-
-
-
-
 Production:
-
-
 
 Reality
 
-
-
-
-
 이므로 simulation-to-real validation을 별도 수행한다.
-

@@ -2,19 +2,13 @@ Traffic Control Software
 
 System Architecture Specification
 
-1\. 목적
+1. 목적
 
-
-
-본 문서는 100\~200대의 AMR/AGV가 동시에 운용되는 환경에서 Robot Traffic Control Software의 전체 시스템 구조를 정의한다.
-
-
+본 문서는 100~200대의 AMR/AGV가 동시에 운용되는 환경에서 Robot Traffic Control Software의 전체 시스템 구조를 정의한다.
 
 환경 특성:
 
-
-
-Robot 100\~200대
+Robot 100~200대
 
 좁고 긴 Corridor 다수
 
@@ -32,13 +26,9 @@ Robot failure 가능
 
 Deadlock 방지 및 recovery 필요
 
-2\. 설계 목표
-
-
+2. 설계 목표
 
 Primary goals:
-
-
 
 Safety
 
@@ -60,93 +50,50 @@ Observability
 
 Fault tolerance
 
-3\. High-Level Architecture
-
-&#x20;                   +----------------------+
-
-&#x20;                   |      Task Manager     |
-
-&#x20;                   +----------+-----------+
-
-&#x20;                              |
-
-&#x20;                              v
-
-&#x20;                   +----------------------+
-
-&#x20;                   |   Traffic Controller  |
-
-&#x20;                   +----------+-----------+
-
-&#x20;                              |
-
-&#x20;         +--------------------+--------------------+
-
-&#x20;         |                    |                    |
-
-&#x20;         v                    v                    v
-
+3. High-Level Architecture
+                    +----------------------+
+                    |      Task Manager     |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    |   Traffic Controller  |
+                    +----------+-----------+
+                               |
+          +--------------------+--------------------+
+          |                    |                    |
+          v                    v                    v
 +----------------+    +----------------+    +----------------+
-
 | Global Planner |    | Reservation    |    | Priority       |
-
 |                |    | Manager        |    | Manager        |
-
 +----------------+    +----------------+    +----------------+
+          |                    |                    |
+          +--------------------+--------------------+
+                               |
+                               v
+                    +----------------------+
+                    | Dynamic Replanning   |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    |  Deadlock Manager    |
+                    +----------+-----------+
+                               |
+                               v
+                    +----------------------+
+                    |    Robot Adapter     |
+                    +----------+-----------+
+                               |
+                  +------------+------------+
+                  |            |            |
+                 R01          R02         R200
 
-&#x20;         |                    |                    |
-
-&#x20;         +--------------------+--------------------+
-
-&#x20;                              |
-
-&#x20;                              v
-
-&#x20;                   +----------------------+
-
-&#x20;                   | Dynamic Replanning   |
-
-&#x20;                   +----------+-----------+
-
-&#x20;                              |
-
-&#x20;                              v
-
-&#x20;                   +----------------------+
-
-&#x20;                   |  Deadlock Manager    |
-
-&#x20;                   +----------+-----------+
-
-&#x20;                              |
-
-&#x20;                              v
-
-&#x20;                   +----------------------+
-
-&#x20;                   |    Robot Adapter     |
-
-&#x20;                   +----------+-----------+
-
-&#x20;                              |
-
-&#x20;                 +------------+------------+
-
-&#x20;                 |            |            |
-
-&#x20;                R01          R02         R200
-
-
-
-4\. Layer Architecture
+4. Layer Architecture
 
 Layer 1: Robot Interface
 
-
-
 책임:
-
-
 
 Robot state 수신
 
@@ -158,11 +105,7 @@ heartbeat
 
 Layer 2: Traffic State
 
-
-
 책임:
-
-
 
 Robot state
 
@@ -176,11 +119,7 @@ Blockage state
 
 Layer 3: Decision
 
-
-
 책임:
-
-
 
 Priority
 
@@ -194,11 +133,7 @@ Deadlock
 
 Layer 4: Planning
 
-
-
 책임:
-
-
 
 Global routing
 
@@ -208,11 +143,7 @@ Corridor planning
 
 Layer 5: Infrastructure
 
-
-
 책임:
-
-
 
 Event Bus
 
@@ -224,7 +155,7 @@ Metrics
 
 Logging
 
-5\. Component List
+5. Component List
 
 TaskManager
 
@@ -232,13 +163,9 @@ RobotManager
 
 MapManager
 
-
-
 GlobalPlanner
 
 LocalReplanner
-
-
 
 ReservationManager
 
@@ -246,15 +173,9 @@ PriorityManager
 
 DeadlockManager
 
-
-
 TrafficController
 
-
-
 RobotAdapter
-
-
 
 EventBus
 
@@ -264,49 +185,28 @@ Metrics
 
 Logger
 
-
-
-6\. Event Driven Architecture
-
-
+6. Event Driven Architecture
 
 시스템의 주요 동작은 Event 기반으로 처리한다.
 
-
-
 RobotStateUpdated
-
-&#x20;       |
-
-&#x20;       v
+        |
+        v
 
 EventBus
-
-&#x20;       |
-
-&#x20;       v
+        |
+        v
 
 TrafficController
+        |
+        +--> Reservation
+        +--> Priority
+        +--> Replanning
+        +--> Deadlock
 
-&#x20;       |
-
-&#x20;       +--> Reservation
-
-&#x20;       +--> Priority
-
-&#x20;       +--> Replanning
-
-&#x20;       +--> Deadlock
-
-
-
-7\. State Ownership
-
-
+7. State Ownership
 
 각 state의 owner:
-
-
 
 State	Owner
 
@@ -324,67 +224,36 @@ Deadlock	DeadlockManager
 
 Traffic Decision	TrafficController
 
-8\. Source of Truth
-
-
+8. Source of Truth
 
 Runtime traffic state는 중앙 Traffic Controller를 source of truth로 한다.
 
-
-
 Robot은 실제 물리 상태를 제공한다.
 
-
-
 Robot
-
-&#x20; = Physical State
-
-
+  = Physical State
 
 Controller
-
-&#x20; = Logical Traffic State
-
-
-
-
+  = Logical Traffic State
 
 두 상태의 차이는 reconciliation 대상으로 처리한다.
 
-
-
-9\. Safety Boundary
-
-
+9. Safety Boundary
 
 Traffic Control Software는 Safety PLC 또는 Robot Safety Controller를 대체하지 않는다.
 
-
-
 Safety System
-
-&#x20;     |
-
-&#x20;     | Emergency Stop
-
-&#x20;     v
+      |
+      | Emergency Stop
+      v
 
 Robot
-
-&#x20;     ^
-
-&#x20;     |
+      ^
+      |
 
 Traffic Controller
 
-
-
-
-
 Traffic Controller는:
-
-
 
 STOP
 
@@ -396,91 +265,49 @@ route
 
 traffic permission
 
-
-
 등을 제어한다.
 
-
-
-10\. Scalability
-
-
+10. Scalability
 
 초기 목표:
 
-
-
 200 robots
-
-
-
-
 
 Architecture는 최소:
 
-
-
 500 robots
-
-
-
-
 
 까지 확장 가능한 구조로 설계한다.
 
-
-
-11\. Processing Model
-
-
+11. Processing Model
 
 권장 구조:
 
-
-
 Event Receiver
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Event Queue
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Traffic Decision Worker
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 State Transaction
-
-&#x20;     |
-
-&#x20;     v
+      |
+      v
 
 Command Dispatcher
 
-
-
-12\. Resource Lock
-
-
+12. Resource Lock
 
 동일 resource에 대한 concurrent decision을 방지한다.
 
-
-
 예:
 
-
-
 C01
-
-
 
 R01 request
 
@@ -488,21 +315,11 @@ R02 request
 
 R03 request
 
-
-
-
-
 하나의 atomic decision cycle에서 순서를 결정한다.
 
-
-
-13\. Transaction Boundary
-
-
+13. Transaction Boundary
 
 다음 작업은 atomic하게 처리한다.
-
-
 
 Reservation Grant
 
@@ -512,15 +329,9 @@ Route Commit
 
 Priority Update
 
-
-
-14\. Failure Model
-
-
+14. Failure Model
 
 다음 failure를 고려한다.
-
-
 
 Robot Failure
 
@@ -540,51 +351,31 @@ Duplicate Event
 
 Out-of-order Event
 
-
-
-15\. Recovery Strategy
-
-
+15. Recovery Strategy
 
 Controller restart:
 
-
-
 Snapshot
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Load State
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Query Robot
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Reconcile
-
-&#x20;  |
-
-&#x20;  v
+   |
+   v
 
 Resume
 
-
-
-16\. Observability
-
-
+16. Observability
 
 필수 observability:
-
-
 
 Metrics
 
@@ -600,9 +391,7 @@ Deadlock Trace
 
 Planning Trace
 
-
-
-17\. 주요 KPI
+17. 주요 KPI
 
 Throughput
 
@@ -624,15 +413,9 @@ Planning Latency
 
 Controller Latency
 
-
-
-18\. Architecture Principle
-
-
+18. Architecture Principle
 
 다음 원칙을 지킨다.
-
-
 
 Safety over throughput
 
@@ -649,4 +432,3 @@ Observable decisions
 Fail safe
 
 No hidden global mutable state
-

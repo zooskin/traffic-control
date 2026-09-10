@@ -302,7 +302,6 @@ Deadline Urgency
 +
 Blocking Impact
 
-
 실제 수식은 Simulation과 Benchmark를 통해 결정한다.
 
 완료 조건
@@ -357,7 +356,6 @@ Wait-for Graph
 R01 -> R02
 R02 -> R03
 R03 -> R01
-
 
 Cycle이 발생하면 Deadlock 가능성을 평가한다.
 
@@ -462,14 +460,12 @@ Affected Robots
  v
 Local Replanning
 
-
 필요한 경우:
 
 Local Replanning
  |
  v
 Global Replanning
-
 
 으로 확장한다.
 
@@ -562,7 +558,6 @@ P50 < 10 ms
 P95 < 50 ms
 P99 < 100 ms
 
-
 이 값은 실제 Benchmark 결과를 기반으로 조정한다.
 
 Phase 16. Scale Test
@@ -624,7 +619,6 @@ AI Agent에게 작업을 요청할 때는 하나의 Logical Objective만 전달�
 좋은 예:
 
 Implement Reservation expiration.
-
 
 좋지 않은 예:
 
@@ -689,9 +683,7 @@ Regression Pass
     +
 Documentation
 
-
 Performance 관련 Feature:
-
 +
 Benchmark
 
@@ -758,7 +750,6 @@ Run Regression
  v
 Run Full Relevant Tests
 
-
 Timeout을 무작정 증가시키거나 Error를 무시해서는 안 된다.
 
 24. Performance Workflow
@@ -781,7 +772,6 @@ Benchmark
  |
  v
 Regression Test
-
 
 성능 수치는 반드시 실제 측정 결과를 사용한다.
 
@@ -812,7 +802,6 @@ Human Approval
  v
 Implementation
 
-
 AI Agent가 Architecture를 독단적으로 변경하지 않는다.
 
 26. Real Robot Deployment Workflow
@@ -839,7 +828,6 @@ Controlled Robot Test
     v
 Production
 
-
 실제 Robot에서 처음 검증하지 않는다.
 
 27. Final Development Principle
@@ -853,7 +841,6 @@ Production
 Architecture를 임의로 변경하지 않는다.
 Simulation을 적극적으로 사용한다.
 실제 Robot 적용 전에 충분히 검증한다.
-
 
 최종 Workflow:
 
@@ -888,6 +875,5 @@ Human Review
      |
      v
 Merge
-
 
 이 Workflow를 프로젝트 전체의 기본 개발 절차로 사용한다.
