@@ -118,15 +118,22 @@ public:
     explicit operator bool() const noexcept { return has_value(); }
 
     /// \pre !has_value()
+    ///
+    /// `.value()` rather than `*`, and not only to satisfy the analyser. The
+    /// assert disappears under NDEBUG, and dereferencing an empty optional
+    /// there is undefined — the kind of fault that corrupts something else and
+    /// is diagnosed hours later somewhere unrelated. `.value()` throws inside
+    /// a noexcept function instead, which terminates at the offending call. A
+    /// crash at the fault beats silent corruption away from it.
     [[nodiscard]] const E& error() const& noexcept {
         assert(!has_value() && "Result::error() on a successful Result");
-        return *error_;
+        return error_.value();
     }
 
     /// \pre !has_value()
     [[nodiscard]] E&& error() && noexcept {
         assert(!has_value() && "Result::error() on a successful Result");
-        return std::move(*error_);
+        return std::move(error_).value();
     }
 
 private:
