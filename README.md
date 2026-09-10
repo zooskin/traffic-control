@@ -4,9 +4,9 @@
 소프트웨어. 좁고 긴 통로, 제한적인 우회로, 사람과 로봇이 공존하는 환경을
 전제로 한다.
 
-> **현재 상태: Phase 3 완료. 다음은 Phase 4 (Robot State).**
+> **현재 상태: Phase 4 완료. 다음은 Phase 5 (Task Model).**
 > 빌드는 CI에서 검증한다 — GCC 13 / Clang 18 / MSVC 2022 3종, 단위 테스트
-> 407/407 통과, ASan·UBSan·TSan 포함. 로컬에서도 빌드하려면 아래 Setup을 따른다.
+> 525/525 통과, ASan·UBSan·TSan 포함. 로컬에서도 빌드하려면 아래 Setup을 따른다.
 
 ---
 

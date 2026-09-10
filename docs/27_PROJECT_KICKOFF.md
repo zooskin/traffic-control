@@ -317,6 +317,143 @@ Robot State(Phase 4)와 Reservation(Phase 6)이 먼저 있어야 하므로 지�
 만들면 두 번 만들게 된다. `05 §24`의 Performance benchmark 항목도 같은
 이유로 Phase 15에 남긴다.
 
+### Week 5 — Phase 4: Robot State ✅ 완료
+
+3개 배치, 단위 테스트 407 → **525개**. 5개 환경 전부 통과.
+
+| 배치 | 커밋 | 내용 |
+|---|---|---|
+| 1 | `03b3032` | RobotStateUpdate, WaitingReason, StallPolicy |
+| 2 | `6d3ed6f` | StateManager |
+| 3 | `a539f58` | RobotCommand, RobotStateChange, 명령 추적 |
+
+**`22` Phase 3 완료 조건**
+
+| 항목 | 상태 |
+|---|---|
+| State Update | ✅ `StateManager::apply` |
+| State Query | ✅ snapshot / snapshots / robots_in_state |
+| State Version | ✅ fleet-wide `StateVersion` |
+| State Transition Test | ✅ Phase 1 전이표 + 관리자 경유 검증 |
+| Stale State Detection | ✅ `stale_robots` |
+
+`04 §24`의 나머지 항목 중 Robot 쪽은 전부 구현했다. Task lifecycle과 Task
+assignment interface는 Phase 5, Reservation association은 Phase 6이다.
+
+**로봇은 자기 교통 상태를 명명할 수 없다** — D-009
+
+D-001의 9개 상태 중 `reserving` / `waiting` / `replanning`은 교통 제어가
+내린 결정이지 Robot이 관측할 수 있는 사실이 아니다. Robot이 `waiting`을
+보고한다는 것은 우리가 무언가를 승인했다고 주장하는 것이고, 이를 믿으면
+발급된 적 없는 예약이 컨트롤러 안에 생긴다.
+
+`StateManager`에 문이 둘인 이유가 이것이다. `apply`는 Robot이 자기에 대해
+말한 것을, `assign_state`는 교통 제어가 Robot에 대해 결정한 것을 받는다.
+세 상태는 두 번째 문으로만 들어온다.
+
+거부하되 고치지 않는다. 조용히 다른 값으로 바꾸면 말이 안 되는 값을 보내는
+fleet이 숨는다.
+
+**관측과 결론을 한 구조체에 넣지 않는다** — D-009
+
+`04 §7`은 WAITING 상태의 Robot이 `waiting_since` / `waiting_resource` /
+`waiting_reason`을 저장한다고 한다. 그러나 Snapshot은 *관측된 것*이고
+waiting reason은 우리가 *결론 내린 것*이다. 함께 넣으면
+
+- 동일한 관측 두 개가 우리가 내린 판단 때문에 다르게 비교된다
+  (`operator==`가 defaulted이고 version 비교에 쓰인다),
+- fleet이 말한 것과 우리가 추론한 것을 사후에 구분할 수 없다.
+
+`state::WaitingContext`로 분리했다.
+
+**`waiting`은 이유 없이 설정할 수 없고, 이유는 `waiting`에만 붙는다**
+
+양방향 모두 거부한다. 이유 없는 hold는 나중에 설명할 수 없고, 재개한 Robot에
+남은 이유는 현재 상태로 읽힌다. 조용히 정리하면 호출자가 잘못 알고 있었다는
+사실이 사라진다. Robot이 다시 움직인다고 보고하면 이유는 즉시 지운다.
+
+**State Version은 fleet 단위다**
+
+`23 §2.4`가 묻는 것은 "이 계획이 이미 움직인 세계를 상대로 계산되었는가"이고,
+그건 fleet에 대한 하나의 질문이다. 그래서 카운터는 하나다. 각 Snapshot에는
+마지막으로 갱신된 시점의 fleet version을 찍어서 "계획 이후 어떤 Robot이
+바뀌었는가"도 답할 수 있게 했다. 거부된 갱신과 조회는 version을 움직이지
+않는다.
+
+**정지 판정 사다리** — `04 §9` + `25 §17~18`
+
+```
+0  .. T1     TEMPORARILY_STOPPED
+T1 .. T2     BLOCKED
+>  T2        FAILURE / RECOVERY
+```
+
+T1은 `04 §9`가 준 유일한 숫자인 5초를 기본값으로 넣었다. **T2는 기본값이
+없다.** `failed`로 올리면 Robot의 자원이 해제되고 Robot이 서 있는 자리로
+교통이 흘러간다. 아무도 측정하지 않은 숫자로 할 일이 아니다 — 그런 기본값은
+사고 중에 발견된다.
+
+사다리는 나쁜 쪽부터 검사한다. 반대로 하면 한 시간 갇힌 Robot이 영원히
+blocked로만 보고되고 절대 올라가지 않는다.
+
+**진행은 속도가 아니라 이동 거리로 잰다.** 팔레트에 밀착해 미는 Robot은
+motion을 보고하면서 아무 데도 가지 않는다. Progress mark는 실제로 움직였을
+때만 전진한다 — 매 관측마다 전진시키면 그 Robot이 방금 출발한 것처럼 보이는
+일이 100ms마다 영원히 반복된다.
+
+**StateManager는 보고하고 판단하지 않는다.** Robot이 얼마나 오래 못 움직였는지
+알지만, 그래서 blocked라고 결정하지는 않는다. 사다리는 Traffic Controller가
+적용한다. Staleness도 같다 — `04 §21`이 COMMUNICATION_LOST를 Robot 상태와
+별개의 system event로 두므로, 보고만 하고 아무도 `unknown`으로 옮기지 않는다.
+
+**Emergency Stop은 없고 앞으로도 없다**
+
+`04 §23`이 Emergency Stop을 일반 Traffic Command와 분리하라고 하고 CLAUDE.md는
+아예 다른 시스템의 책임으로 둔다. `CommandAction`에 해당 값이 없으며, 이름이
+파싱되지 않는다는 테스트를 두었다 — 나중에 추가하려면 의도적인 행위가 되도록.
+
+Emergency Stop을 낼 수 있는 Traffic Controller는 사람들이 안전을 위해
+의지하기 시작하는 Traffic Controller이고, 이 시스템은 그 기준으로 만들어지지
+않았다. 판단이 낡을 수 있는 상태, 시간 초과할 수 있는 planner, 침묵할 수 있는
+fleet에 의존한다.
+
+다만 안전 시스템이 Robot을 멈춘 사실은 `WaitingReason::safety_stop`으로
+기록한다. 우리 타이머가 그 정지를 교통 문제로 오인하지 않게 하기 위해서다.
+
+**상태 변경은 발행하지 않고 반환한다**
+
+`apply`와 `assign_state`가 변경이 있었을 때 `RobotStateChange`를, 상태가
+움직이지 않았을 때 빈 값을 돌려준다(대부분의 텔레메트리가 후자다). Listener
+registry를 두면 listener 실행 순서가 시스템 동작의 일부가 되어버린다.
+TrafficEvent로 만들지, 로그로 남길지, 버릴지는 호출자가 정한다.
+
+`is_stall_onset`은 진행하던 Robot이 멈춘 전이만 센다. waiting에서 blocked로
+간 Robot은 방금 막힌 것이 아니며, 세면 아무것도 변하지 않는 동안 경보가 계속
+올라간다. 고장은 대응이 다른 별개의 경보이므로 섞지 않는다.
+
+**명령 추적** — `04 §22`
+
+`last_command`와 `last_ack_command`의 짝이 "아직 시작하지 않았다"와 "못
+들었다"를 구분한다. 밖에서 보면 같은 그림이고 대응은 반대다. 보낸 적이 없는
+것은 무시된 것이 아니므로, 명령받은 적 없는 Robot에는 미확인 명령이 없다.
+
+**테스트가 잡은 것 하나, 도구가 잡은 것 하나**
+
+`04 §5`의 11개 status(IDLE/ASSIGNED/PLANNING/MOVING/WAITING/BLOCKED/
+REPLANNING/RECOVERY/ARRIVED/FAILED/EMERGENCY_STOP)는 D-001의 9개가 대체한다.
+`ASSIGNED`/`PLANNING`/`ARRIVED`는 Task 상태이지 Robot의 교통 상태가 아니므로
+Phase 5의 `TaskStatus`가 담는다.
+
+clang-tidy의 `bugprone-unchecked-optional-access`가 `Result<void, E>::error()`
+에 도달했고, 지적이 옳았다. `assert`는 NDEBUG에서 사라지므로 릴리스에서
+전제 위반이 undefined behaviour였다 — 다른 것을 망가뜨리고 몇 시간 뒤 무관한
+곳에서 진단되는 종류의 결함이다. 기본 템플릿과 같은 `std::variant`로 바꿨다.
+저장 방식이 하나로 줄고, 잘못된 alternative 접근은 noexcept 함수 안에서
+terminate로 끝난다. 결함 지점에서의 crash가 떨어진 곳에서의 조용한 손상보다
+낫다.
+
+**기록한 결정** — D-009 (보고한 것과 결정한 것의 분리, `04 §5`의 status 대체).
+
 ---
 
 ## 5. 초기 위험
