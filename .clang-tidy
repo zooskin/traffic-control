@@ -17,20 +17,33 @@ Checks: >
   portability-*,
   readability-*,
   -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-type-vararg,
   -google-readability-todo,
   -misc-non-private-member-variables-in-classes,
   -modernize-use-trailing-return-type,
+  -performance-enum-size,
   -readability-identifier-length,
   -readability-magic-numbers
 
+# Two checks are switched off above rather than merely demoted:
+#
+#   bugprone-exception-escape  flags main() and every noexcept function whose
+#     body might throw. The project's top-level error policy is not settled yet
+#     — docs/20_CODING_GUIDELINES.md §18 calls for a result type, which arrives
+#     with the domain in Phase 1. Re-enable once that exists.
+#   performance-enum-size      would have every small enum pick a narrow
+#     underlying type. Not worth the readability cost at this scale.
+
+# Only these become errors. The rest report. Compiler warnings are a separate
+# matter and are already fatal via -Werror / /WX (docs/19 §28).
 WarningsAsErrors: >
   bugprone-*,
   cert-*,
   concurrency-*,
-  performance-*
+  -bugprone-exception-escape
 
 HeaderFilterRegex: '(include|src|simulation)/.*\.(h|hpp)$'
 

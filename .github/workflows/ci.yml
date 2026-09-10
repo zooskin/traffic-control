@@ -6,6 +6,9 @@ name: CI
 #
 # Sanitizers run as separate jobs (§27) on Linux, because MSVC has no
 # ThreadSanitizer and the decision loop will become multi-threaded.
+#
+# While no C++ toolchain is installed on the development machine, this workflow
+# is the only thing that compiles the project. Keep it green.
 
 on:
   push:
@@ -19,6 +22,7 @@ concurrency:
 
 env:
   CMAKE_VERSION: "3.28.3"
+  LLVM_VERSION: "18"
 
 jobs:
   format:
@@ -26,14 +30,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Install clang-format
-        run: sudo apt-get update && sudo apt-get install -y clang-format-18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-format-${LLVM_VERSION}"
+
       - name: Check formatting
         run: |
-          files=$(find include src tests simulation benchmarks \
-                    -name '*.h' -o -name '*.hpp' -o -name '*.cpp' 2>/dev/null || true)
-          if [ -z "$files" ]; then echo "no sources yet"; exit 0; fi
-          clang-format-18 --dry-run --Werror $files
+          mapfile -t files < <(
+            find include src tests simulation benchmarks \
+              \( -name '*.h' -o -name '*.hpp' -o -name '*.cpp' \) 2>/dev/null | sort
+          )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no sources yet"
+            exit 0
+          fi
+          printf 'checking %d files\n' "${#files[@]}"
+          "clang-format-${LLVM_VERSION}" --dry-run --Werror "${files[@]}"
 
   build:
     name: Build & Test (${{ matrix.name }})
@@ -44,22 +58,20 @@ jobs:
         include:
           - name: linux-gcc
             os: ubuntu-24.04
-            preset: dev
           - name: linux-clang
             os: ubuntu-24.04
-            preset: dev
             cc: clang-18
             cxx: clang++-18
           - name: windows-msvc
             os: windows-2022
-            preset: dev
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up compiler
+      - name: Install clang
         if: matrix.cc != ''
-        shell: bash
         run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-${LLVM_VERSION}"
           echo "CC=${{ matrix.cc }}"   >> "$GITHUB_ENV"
           echo "CXX=${{ matrix.cxx }}" >> "$GITHUB_ENV"
 
@@ -70,24 +82,36 @@ jobs:
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4
         with:
-          path: build/${{ matrix.preset }}/_deps
+          path: build/dev/_deps
           key: deps-${{ matrix.name }}-${{ hashFiles('cmake/TrafficDependencies.cmake') }}
 
       - name: Configure
-        run: cmake --preset ${{ matrix.preset }}
+        run: cmake --preset dev
 
       - name: Build
-        run: cmake --build --preset ${{ matrix.preset }} --parallel
+        run: cmake --build --preset dev --parallel
 
       - name: Test
-        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+        run: ctest --preset dev
 
+      # docs/19_TECHNOLOGY_DECISION.md §26 — simulation smoke test.
       - name: Simulation smoke test
         shell: bash
         run: |
-          bin="build/${{ matrix.preset }}/bin/tc_simulator"
-          [ -x "$bin" ] || bin="build/${{ matrix.preset }}/bin/Debug/tc_simulator.exe"
-          "$bin" --log-level=info
+          for candidate in \
+            build/dev/bin/tc_simulator \
+            build/dev/bin/tc_simulator.exe \
+            build/dev/bin/Debug/tc_simulator.exe
+          do
+            if [ -x "$candidate" ]; then
+              echo "running $candidate"
+              "$candidate" --log-level=info
+              exit 0
+            fi
+          done
+          echo "tc_simulator not found under build/dev/bin" >&2
+          find build/dev -name 'tc_simulator*' >&2 || true
+          exit 1
 
   sanitizers:
     name: Sanitizers (${{ matrix.preset }})
@@ -98,32 +122,49 @@ jobs:
         preset: [asan, tsan]
     steps:
       - uses: actions/checkout@v4
+
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
+
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
+
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }} --parallel
+
       - name: Test
-        run: ctest --preset ${{ matrix.preset }} --output-on-failure
+        run: ctest --preset ${{ matrix.preset }}
 
   static-analysis:
     name: clang-tidy
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Install clang-tidy
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy-18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "clang-tidy-${LLVM_VERSION}"
+
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
+
       - name: Configure
         run: cmake --preset dev
-      - name: Run clang-tidy on changed sources
-        shell: bash
+
+      # Only translation units are passed in; headers are reached through them
+      # and filtered by HeaderFilterRegex in .clang-tidy. Handing clang-tidy a
+      # bare header has no entry in compile_commands.json and yields noise.
+      - name: Run clang-tidy
         run: |
-          files=$(find include src simulation \
-                    -name '*.h' -o -name '*.cpp' 2>/dev/null || true)
-          if [ -z "$files" ]; then echo "no sources yet"; exit 0; fi
-          clang-tidy-18 -p build/dev $files
+          mapfile -t files < <(
+            find include src simulation -name '*.cpp' 2>/dev/null | sort
+          )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no sources yet"
+            exit 0
+          fi
+          printf 'analysing %d files\n' "${#files[@]}"
+          "clang-tidy-${LLVM_VERSION}" -p build/dev "${files[@]}"

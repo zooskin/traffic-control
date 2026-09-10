@@ -66,10 +66,10 @@
   ],
 
   "buildPresets": [
-    { "name": "dev",     "configurePreset": "dev" },
-    { "name": "release", "configurePreset": "release" },
-    { "name": "asan",    "configurePreset": "asan" },
-    { "name": "tsan",    "configurePreset": "tsan" }
+    { "name": "dev",     "configurePreset": "dev",     "configuration": "Debug" },
+    { "name": "release", "configurePreset": "release", "configuration": "RelWithDebInfo" },
+    { "name": "asan",    "configurePreset": "asan",    "configuration": "Debug" },
+    { "name": "tsan",    "configurePreset": "tsan",    "configuration": "Debug" }
   ],
 
   "testPresets": [
@@ -79,14 +79,15 @@
       "output": { "outputOnFailure": true, "verbosity": "default" },
       "execution": { "noTestsAction": "error", "stopOnFailure": false }
     },
-    { "name": "dev",     "inherits": "base", "configurePreset": "dev" },
-    { "name": "release", "inherits": "base", "configurePreset": "release" },
-    { "name": "asan",    "inherits": "base", "configurePreset": "asan" },
-    { "name": "tsan",    "inherits": "base", "configurePreset": "tsan" },
+    { "name": "dev",     "inherits": "base", "configurePreset": "dev",     "configuration": "Debug" },
+    { "name": "release", "inherits": "base", "configurePreset": "release", "configuration": "RelWithDebInfo" },
+    { "name": "asan",    "inherits": "base", "configurePreset": "asan",    "configuration": "Debug" },
+    { "name": "tsan",    "inherits": "base", "configurePreset": "tsan",    "configuration": "Debug" },
     {
       "name": "unit",
       "inherits": "base",
       "configurePreset": "dev",
+      "configuration": "Debug",
       "filter": { "include": { "label": "unit" } }
     }
   ]
