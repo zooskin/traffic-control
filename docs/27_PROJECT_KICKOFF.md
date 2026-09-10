@@ -88,9 +88,20 @@ Production Gate는 `docs/archive/18_IMPLEMENTATION_PLAN.md` §30의 조건을
 - [x] Strong ID 타입 + `IClock` / `SystemClock` / `SimulationClock`
 - [x] 로깅 초기화
 - [x] 정적 검증 (프리셋·워크플로 파싱, 경로 정합성, 코드 리뷰)
-- [ ] **CI 빌드 통과** ← 원격 저장소 push 필요 (§6)
+- [x] **CI 빌드 통과** — 7개 잡 전부 green
 
-완료 조건 (22 Phase 0): Build 성공 / Unit Test 실행 / Logging 동작 / CI 동작
+완료 조건 (22 Phase 0) 충족 결과:
+
+| 조건 | 결과 |
+|---|---|
+| Build 성공 | GCC 13 / Clang 18 / MSVC 2022 3종 통과 |
+| Unit Test 실행 | **32/32 통과** (5개 환경 전부) |
+| Logging 동작 | 시뮬레이터 스모크 테스트에서 결정 레코드 출력 확인 |
+| CI 동작 | format / build×3 / sanitizers×2 / clang-tidy |
+
+Sanitizer(ASan+UBSan, TSan)에서도 32/32 통과했다.
+
+**Phase 0 완료.**
 
 ### Week 2 — Phase 1: Core Domain
 
@@ -167,17 +178,28 @@ python         없음 (Store 스텁만 존재)
 | CMake가 참조하는 소스·헤더 존재 | 11개 전부 존재 |
 | 수동 코드 리뷰 | 결함 4건 발견·수정 (커밋 `e01661f`) |
 
-### 남은 절차
+### 결과
 
-원격 저장소가 없고 이 머신에 `gh` CLI가 없으며 git 자격증명이 브라우저
-인증(GCM)이라, 저장소 생성과 push는 사람이 해야 한다.
+저장소: https://github.com/zooskin/traffic-control (private)
 
-```bash
-gh repo create traffic-control --private --source=. --push
-# 또는 GitHub 웹에서 저장소를 만든 뒤
-git remote add origin <URL>
-git push -u origin main
-```
+CI를 green으로 만드는 데 4회 반복이 필요했다. 로컬 컴파일 없이 작성한
+코드가 실제로 어디서 깨지는지 기록해 둔다.
 
-push 후 Actions 탭에서 `format` / `build (3종)` / `sanitizers (2종)` /
-`static-analysis` 가 모두 통과하면 **Phase 0 완료**다.
+| 회차 | 실패 | 원인 |
+|---|---|---|
+| 1 | 7/7 | `requires { TrafficClock::now(); }` — 한정된 이름 조회는 SFINAE 문맥이 아니라 하드 에러. GCC/Clang/MSVC **3종 모두 동일한 오류 하나뿐**이었다 |
+| 2 | 5/7 | clang-tidy 수정이 GCC `-Wmissing-field-initializers`와 충돌. `format.sh`가 `100644`로 커밋되어 실행 불가 |
+| 3 | 1/7 | npm 패키지가 win32/linux/darwin 바이너리를 **모두 실행 비트와 함께** 배포해서, "첫 실행 가능 파일" 탐색이 Linux에서 `.exe`를 골랐다 |
+| 4 | 0/7 | 통과 |
+
+### 얻은 교훈
+
+- **툴 간 충돌은 명시적으로 판정한다.** clang-tidy의
+  `readability-redundant-member-init`과 GCC의 `-Wmissing-field-initializers`는
+  정반대를 요구한다. 컴파일러 경고가 이긴다는 원칙을 `.clang-tidy`에
+  기록했다.
+- **포매터 버전을 고정한다.** 배포판 clang-format에 의존하면 로컬에서
+  재현되지 않는 실패가 난다. `package.json`에 핀으로 박고 로컬과 CI가
+  같은 바이너리를 쓴다.
+- **Windows에서 커밋한 셸 스크립트는 실행 비트를 잃는다.**
+  `git update-index --chmod=+x` 로 기록하고, CI는 `bash <script>` 로 호출한다.
