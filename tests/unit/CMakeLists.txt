@@ -13,6 +13,7 @@ tc_add_test(tc_domain_tests
     SOURCES
         domain/values_test.cpp
         domain/state_machines_test.cpp
+        domain/entities_test.cpp
     LIBS
         tc::domain
 )
