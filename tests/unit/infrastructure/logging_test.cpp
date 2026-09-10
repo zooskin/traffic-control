@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 namespace traffic::infrastructure {
 namespace {

@@ -17,6 +17,7 @@
 #include <spdlog/spdlog.h>
 
 #include <string>
+#include <string_view>
 
 namespace traffic::infrastructure {
 

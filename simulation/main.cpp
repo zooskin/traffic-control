@@ -10,44 +10,51 @@
 #include "traffic/core/time.h"
 #include "traffic/infrastructure/logging.h"
 
+#include <chrono>
 #include <cstdlib>
 #include <string_view>
 
 namespace {
 
-using namespace traffic;  // NOLINT(google-build-using-namespace) — entry point only
-
 constexpr int kDemoSteps = 5;
-constexpr core::Duration kDemoStep = core::Milliseconds{100};
+constexpr traffic::core::Duration kDemoStep = traffic::core::Milliseconds{100};
+
+constexpr std::string_view kLogLevelFlag = "--log-level=";
 
 }  // namespace
 
 int main(int argc, char** argv) {
-    auto level = infrastructure::LogLevel::info;
+    using traffic::core::CorridorId;
+    using traffic::core::IClock;
+    using traffic::core::Milliseconds;
+    using traffic::core::RobotId;
+    using traffic::core::SimulationClock;
+    namespace infra = traffic::infrastructure;
+
+    auto level = infra::LogLevel::info;
     for (int i = 1; i < argc; ++i) {
         const std::string_view arg{argv[i]};
-        if (arg.starts_with("--log-level=")) {
-            level = infrastructure::parse_log_level(arg.substr(12), level);
+        if (arg.starts_with(kLogLevelFlag)) {
+            level = infra::parse_log_level(arg.substr(kLogLevelFlag.size()), level);
         }
     }
 
-    infrastructure::init_logging(infrastructure::LogConfig{.level = level});
+    infra::init_logging(infra::LogConfig{.level = level});
 
     TC_LOG_INFO("traffic simulator starting (phase 0 skeleton)");
 
     // Time is injected, never read from the wall clock, so this loop produces
     // the same trace on every machine (docs/01_REQUIREMENTS.md NFR-003).
-    core::SimulationClock clock;
-    const core::IClock& time = clock;
+    SimulationClock clock;
+    const IClock& time = clock;
 
-    const core::RobotId robot{"R001"};
-    const core::CorridorId corridor{"CORRIDOR-01"};
+    const RobotId robot{"R001"};
+    const CorridorId corridor{"CORRIDOR-01"};
 
     for (int step = 0; step < kDemoSteps; ++step) {
         clock.advance(kDemoStep);
         TC_LOG_INFO("t={}ms robot_id={} resource_id={} decision={} reason={}",
-                    std::chrono::duration_cast<core::Milliseconds>(
-                        time.now().time_since_epoch())
+                    std::chrono::duration_cast<Milliseconds>(time.now().time_since_epoch())
                         .count(),
                     robot.value(),
                     corridor.value(),
@@ -56,7 +63,7 @@ int main(int argc, char** argv) {
     }
 
     TC_LOG_INFO("traffic simulator finished");
-    infrastructure::shutdown_logging();
+    infra::shutdown_logging();
 
     return EXIT_SUCCESS;
 }

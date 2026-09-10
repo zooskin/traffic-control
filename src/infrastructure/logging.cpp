@@ -4,7 +4,9 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include <cstddef>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace traffic::infrastructure {
@@ -86,7 +88,7 @@ void shutdown_logging() {
 }
 
 LogLevel current_level() {
-    const auto& logger = spdlog::default_logger_raw();
+    const auto* logger = spdlog::default_logger_raw();
     return logger != nullptr ? from_spdlog(logger->level()) : LogLevel::off;
 }
 
