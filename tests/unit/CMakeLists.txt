@@ -38,11 +38,14 @@ target_compile_definitions(tc_map_tests PRIVATE
 tc_add_test(tc_planning_tests
     LABEL   unit
     SOURCES
+        planning/astar_planner_test.cpp
         planning/cost_model_test.cpp
         planning/heuristic_test.cpp
+        planning/planning_record_test.cpp
         planning/route_request_test.cpp
         planning/route_stability_test.cpp
         planning/route_validator_test.cpp
+        planning/sequential_fleet_planner_test.cpp
     LIBS
         tc::planning
 )

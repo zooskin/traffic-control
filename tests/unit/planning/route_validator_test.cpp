@@ -131,7 +131,14 @@ TEST(RouteValidation, route_validation_rejects_a_disabled_edge) {
 
     const domain::Route route = route_over({"A", "B"}, {"E-AB"});
 
-    EXPECT_TRUE(validate_route(map, route, RouteConstraints{}).has(RouteDefect::edge_disabled));
+    const RouteValidation validation = validate_route(map, route, RouteConstraints{});
+
+    EXPECT_TRUE(validation.has(RouteDefect::edge_disabled));
+
+    // And not also a direction violation. `is_traversable_from` reports false
+    // for a disabled edge too, so reporting both would label every closed
+    // corridor a one-way mistake.
+    EXPECT_FALSE(validation.has(RouteDefect::wrong_direction));
 }
 
 TEST(RouteValidation, route_validation_rejects_driving_a_one_way_edge_backwards) {

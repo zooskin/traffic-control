@@ -36,15 +36,17 @@ void validate_segment(const map::Map& map,
         return;
     }
 
+    // Chained, not two independent checks. `is_traversable_from` reports false
+    // for a disabled edge as well as for the wrong direction, so running both
+    // labels every closed corridor a one-way violation — a diagnostic that
+    // sends whoever reads it looking for a direction bug that is not there.
     if (!edge->enabled) {
         validation.add(
             RouteDefect::edge_disabled, segment.edge_id.value(), index, "the edge is disabled");
-    }
-
-    // The check a route built from incident edges passes and should not: the
-    // walk is connected, and one of its steps runs the wrong way down a
-    // one-way corridor.
-    if (!domain::is_traversable_from(*edge, segment.from_node)) {
+    } else if (!domain::is_traversable_from(*edge, segment.from_node)) {
+        // The check a route built from incident edges fails and should: the
+        // walk is connected, and one of its steps runs the wrong way down a
+        // one-way corridor.
         validation.add(RouteDefect::wrong_direction,
                        segment.edge_id.value(),
                        index,

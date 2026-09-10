@@ -18,6 +18,7 @@ Checks: >
   readability-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-exception-escape,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-type-vararg,
@@ -41,6 +42,12 @@ Checks: >
 #   misc-include-cleaner       demands a direct include for every name used,
 #     including every spdlog::level::* enumerator. It produced more output than
 #     every other check combined and buried the findings that mattered.
+#   cppcoreguidelines-avoid-const-or-ref-data-members  contradicts CLAUDE.md
+#     directly. Dependency Injection there is "구현체를 내부에서 new 하지
+#     않는다. 인터페이스 참조를 생성자로 받는다" — every collaborator is held
+#     as a reference, on purpose, so the object cannot own or replace it. The
+#     check would have us store pointers or copies instead, which is the thing
+#     the rule exists to prevent.
 #   readability-redundant-member-init  directly contradicts GCC's
 #     -Wmissing-field-initializers, which is fatal here: it asks us to drop the
 #     `{}` that stops the compiler warning at every designated-initialiser call

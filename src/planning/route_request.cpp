@@ -49,6 +49,8 @@ std::string_view to_string(RouteFailure failure) noexcept {
             return "BLOCKED_GOAL";
         case RouteFailure::no_route:
             return "NO_ROUTE";
+        case RouteFailure::search_limit_reached:
+            return "SEARCH_LIMIT_REACHED";
     }
     return "UNKNOWN";
 }
@@ -64,9 +66,13 @@ bool is_retryable(RouteFailure failure) noexcept {
 
         // A malformed request or a node that is not in the map will fail the
         // same way for as long as the map and the request stay as they are.
+        // So will a search that ran out of budget: the cap is configuration,
+        // not weather, and retrying spends the same budget to reach the same
+        // point. Raising the cap is a decision for a human.
         case RouteFailure::invalid_request:
         case RouteFailure::unknown_start:
         case RouteFailure::unknown_goal:
+        case RouteFailure::search_limit_reached:
             return false;
     }
     return false;

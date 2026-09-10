@@ -6,12 +6,15 @@
 # implements on the far side of the interface.
 
 add_library(tc_planning
+    astar_planner.cpp
     cost_model.cpp
     heuristic.cpp
+    planning_record.cpp
     planning_request.cpp
     route_request.cpp
     route_stability.cpp
     route_validator.cpp
+    sequential_fleet_planner.cpp
 )
 add_library(tc::planning ALIAS tc_planning)
 
@@ -23,13 +26,16 @@ target_sources(tc_planning PUBLIC
     FILE_SET HEADERS
     BASE_DIRS "${PROJECT_SOURCE_DIR}/include"
     FILES
+        "${PROJECT_SOURCE_DIR}/include/traffic/planning/astar_planner.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/cost_model.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/heuristic.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/planning/planning_record.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/planning_request.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_planner.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_request.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_stability.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/planning/route_validator.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/planning/sequential_fleet_planner.h"
 )
 
 target_link_libraries(tc_planning

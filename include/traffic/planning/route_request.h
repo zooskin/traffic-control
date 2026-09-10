@@ -14,6 +14,7 @@
 /// must not leak that restriction into the next robot's route.
 
 #include <cstddef>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -22,6 +23,7 @@
 #include "traffic/core/time.h"
 #include "traffic/domain/route.h"
 #include "traffic/domain/values.h"
+#include "traffic/planning/route_stability.h"
 
 namespace traffic::planning {
 
@@ -126,6 +128,14 @@ enum class RouteFailure {
     /// This is §13's NO_ROUTE. The controller answers it with WAIT, RETRY,
     /// ALTERNATIVE_GOAL or TASK_FAILED — the planner does not choose.
     no_route,
+
+    /// The search hit its expansion cap before reaching the goal.
+    ///
+    /// Distinct from `no_route`: a path may well exist. What is known is that
+    /// the planner was not allowed to look far enough, so the answer is "I do
+    /// not know" and not "there is none". Reporting it as NO_ROUTE would have
+    /// the controller fail a task that was perfectly achievable.
+    search_limit_reached,
 };
 
 [[nodiscard]] std::string_view to_string(RouteFailure failure) noexcept;
@@ -162,6 +172,12 @@ struct RouteResponse {
 
     /// Time spent planning, measured on the injected clock.
     core::Duration planning_time{core::Duration::zero()};
+
+    /// Set by `replan_route`: whether the alternative was adopted, and why.
+    ///
+    /// Empty for a first-time plan, where there was nothing to keep. When it
+    /// says the route was kept, `route` is the one the robot already had.
+    std::optional<ReplanDecision> replan_decision;
 };
 
 }  // namespace traffic::planning
