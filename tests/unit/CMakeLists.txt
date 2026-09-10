@@ -12,6 +12,7 @@ tc_add_test(tc_domain_tests
     LABEL   unit
     SOURCES
         domain/values_test.cpp
+        domain/state_machines_test.cpp
     LIBS
         tc::domain
 )

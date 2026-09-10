@@ -7,6 +7,9 @@
 
 add_library(tc_domain
     errors.cpp
+    reservation_state.cpp
+    robot_state.cpp
+    task_status.cpp
     values.cpp
 )
 add_library(tc::domain ALIAS tc_domain)
@@ -20,6 +23,9 @@ target_sources(tc_domain PUBLIC
     BASE_DIRS "${PROJECT_SOURCE_DIR}/include"
     FILES
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/errors.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/domain/reservation_state.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/domain/robot_state.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/domain/task_status.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/domain/values.h"
 )
 
