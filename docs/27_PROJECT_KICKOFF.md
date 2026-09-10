@@ -139,15 +139,53 @@ Sanitizer(ASan+UBSan, TSan)에서도 32/32 통과했다.
 **연기한 것** — Phase 경계에 맞춤: Corridor/Intersection → Phase 2,
 PlanningRequest/Result → Phase 3, Deadlock/HumanBlockage → Phase 9.
 
-### Week 3 — Phase 2: Map & Graph
+### Week 3 — Phase 2: Map & Graph ✅ 완료
 
-`03_MAP_GRAPH` + `24 §7~10` 기준.
+`03_MAP_GRAPH` 기준. 단위 테스트 **254개, 5개 환경 전부 통과**.
 
-- Node / Edge / Resource / Corridor / Intersection / Conflict Zone
-- **Corridor를 독립 Traffic Resource로 표현** (23 §18 — 이 설계가 프로젝트의
-  핵심이므로 여기서 타협하지 않는다)
-- MapLoader (YAML 또는 JSON) + Map validation
-- 17_SIMULATION_SCENARIOS의 기준 맵을 실제 파일로 작성
+| 배치 | 내용 | CI |
+|---|---|---|
+| 1 | Corridor / Intersection / Movement / ConflictGroup / WaitingBay, NodeType 정렬 | 1회 통과 |
+| 2 | Map 컨테이너 + 조회 API + 검증기 | 1회 통과 |
+| 3 | JSON 로드/저장 + 기준 맵 | 1회 통과 |
+
+**`03 §24` Acceptance Criteria 대비**
+
+| 항목 | 상태 |
+|---|---|
+| Map Load / Save / Version | ✅ |
+| Node / Edge / Neighbor / Resource 조회 | ✅ |
+| Reachability | ✅ |
+| Map Validation | ✅ 16종 검사 |
+| Corridor / Intersection / Conflict Group / Waiting Bay 정의 | ✅ |
+
+`§25` 요구 테스트 11종 전부 존재한다.
+
+**설계 판단**
+
+- **Corridor는 Edge의 속성이 아니라 독립 Resource다.** 여러 Edge가 하나의
+  `resource_id`를 공유하고, 한 대만 통과시키는 주체는 Edge가 아니라 Corridor다.
+  이것이 `00_MASTER_PLAN §4.2`의 요구이며 여기서 타협하면 프로젝트 전제가
+  무너진다. 기준 맵에서 `E-C1`/`E-C2`/`E-C3`가 `CORRIDOR-01` 하나를 공유한다.
+- **Intersection은 capacity만으로 부족하다.** 교차하지 않는 두 movement는
+  동시 통과가 가능하고 교차하는 둘은 불가능한데, 점유 수만으로는 둘 중
+  하나밖에 표현하지 못한다. ConflictGroup이 그 차이를 담는다.
+- **`traversable_edges`와 `incident_edges`를 분리했다.** incident를 확장하는
+  플래너는 일방통행 corridor를 역주행하는 경로를 만들고 예약이 거부될 때에야
+  알게 된다.
+- **인접 목록은 Edge 순서로 구성한다.** 해시 순서에 의존하면 같은 입력에서
+  같은 경로가 나오지 않는다 (NFR-003).
+- **검증은 첫 오류에서 멈추지 않는다.** 현장 맵을 한 번에 하나씩 고치는 것은
+  작업 흐름이 아니다. 연결성 문제는 error가 아니라 **warning** — 도달 불가능한
+  정비용 지선 때문에 현장 전체를 막을 이유가 없다.
+
+**기준 맵** — `configs/maps/reference_map.json`
+
+`17_SIMULATION_SCENARIOS §2`의 구조를 실제 파일로 만들었다. Corridor는
+의도적으로 단일 차선 양방향이고(head-on 케이스), 교차로 옆에 Waiting Bay가
+있다(우회로 없는 corridor에서 head-on 교착의 유일한 탈출구).
+
+**기록한 결정** — D-006 (NodeType은 `03` 어휘), D-007 (travel_time은 파생값).
 
 ### Week 4 — Phase 3: A\* + 수직 슬라이스
 

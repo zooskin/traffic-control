@@ -4,9 +4,9 @@
 소프트웨어. 좁고 긴 통로, 제한적인 우회로, 사람과 로봇이 공존하는 환경을
 전제로 한다.
 
-> **현재 상태: Phase 1 완료. 다음은 Phase 2 (Map & Graph).**
+> **현재 상태: Phase 2 완료. 다음은 Phase 3 (Route Planning, A*).**
 > 빌드는 CI에서 검증한다 — GCC 13 / Clang 18 / MSVC 2022 3종, 단위 테스트
-> 174/174 통과, ASan·UBSan·TSan 포함. 로컬에서도 빌드하려면 아래 Setup을 따른다.
+> 254/254 통과, ASan·UBSan·TSan 포함. 로컬에서도 빌드하려면 아래 Setup을 따른다.
 
 ---
 
@@ -87,7 +87,13 @@ data race 검증은 Linux CI에서만 이루어진다.**
 ./build/dev/bin/tc_simulator --log-level=debug
 ```
 
-Phase 0 시점에는 로깅과 결정론적 시간 주입만 확인하는 골격이다.
+Phase 2 시점에는 로깅과 결정론적 시간 주입만 확인하는 골격이다.
+시뮬레이션 세계는 Phase 13에서 붙인다.
+
+### 기준 맵
+
+`configs/maps/reference_map.json` 이 `17_SIMULATION_SCENARIOS` §2의 기준
+맵이다. 단일 차선 양방향 corridor, 교차로, Waiting Bay를 포함한다.
 
 ---
 
