@@ -100,6 +100,15 @@ enum class UpdateRejection {
     /// docs/24_DOMAIN_MODEL.md §5.
     invalid_transition,
 
+    /// `waiting` was assigned with no reason, or a reason was supplied for a
+    /// state that is not `waiting`.
+    ///
+    /// Both are refused rather than tidied up. A hold with no reason cannot
+    /// be explained afterwards, and a reason left on a robot that has
+    /// resumed will be read as current. Cleaning either up silently loses
+    /// the fact that the caller had the wrong idea.
+    waiting_reason_mismatch,
+
     /// Battery outside 0-100.
     battery_out_of_range,
 

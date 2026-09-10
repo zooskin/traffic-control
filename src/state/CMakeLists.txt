@@ -11,6 +11,7 @@
 add_library(tc_state
     robot_state_update.cpp
     stall_policy.cpp
+    state_manager.cpp
     waiting.cpp
 )
 add_library(tc::state ALIAS tc_state)
@@ -25,6 +26,7 @@ target_sources(tc_state PUBLIC
     FILES
         "${PROJECT_SOURCE_DIR}/include/traffic/state/robot_state_update.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/state/stall_policy.h"
+        "${PROJECT_SOURCE_DIR}/include/traffic/state/state_manager.h"
         "${PROJECT_SOURCE_DIR}/include/traffic/state/waiting.h"
 )
 

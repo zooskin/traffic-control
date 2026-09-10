@@ -45,6 +45,8 @@ std::string_view to_string(UpdateRejection rejection) noexcept {
             return "NOT_ROBOT_REPORTABLE";
         case UpdateRejection::invalid_transition:
             return "INVALID_TRANSITION";
+        case UpdateRejection::waiting_reason_mismatch:
+            return "WAITING_REASON_MISMATCH";
         case UpdateRejection::battery_out_of_range:
             return "BATTERY_OUT_OF_RANGE";
         case UpdateRejection::at_a_node_and_on_an_edge:

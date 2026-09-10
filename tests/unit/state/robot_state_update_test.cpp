@@ -155,6 +155,7 @@ TEST(UpdateRejectionName, update_rejection_every_value_has_a_name) {
                                             UpdateRejection::stale_timestamp,
                                             UpdateRejection::not_robot_reportable,
                                             UpdateRejection::invalid_transition,
+                                            UpdateRejection::waiting_reason_mismatch,
                                             UpdateRejection::battery_out_of_range,
                                             UpdateRejection::at_a_node_and_on_an_edge}) {
         EXPECT_NE(to_string(rejection), "UNKNOWN");
