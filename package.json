@@ -1,0 +1,13 @@
+{
+  "name": "traffic-control-devtools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Development tooling only. The project itself is C++20 built with CMake — see README.md. This file exists so that clang-format is pinned to one exact binary shared by developer machines and CI; a version drift between the two turns the formatting check into noise. The package ships prebuilt binaries for win32, linux and darwin.",
+  "devDependencies": {
+    "clang-format": "1.8.0"
+  },
+  "scripts": {
+    "format": "bash scripts/format.sh",
+    "format:check": "bash scripts/format.sh --check"
+  }
+}

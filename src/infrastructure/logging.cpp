@@ -1,13 +1,13 @@
 #include "traffic/infrastructure/logging.h"
 
-#include <spdlog/async.h>
-#include <spdlog/sinks/basic_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-
 #include <cstddef>
 #include <memory>
 #include <string_view>
 #include <vector>
+
+#include <spdlog/async.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace traffic::infrastructure {
 namespace {
@@ -24,27 +24,42 @@ constexpr std::size_t kAsyncThreadCount = 1;
 
 [[nodiscard]] spdlog::level::level_enum to_spdlog(LogLevel level) noexcept {
     switch (level) {
-        case LogLevel::trace:    return spdlog::level::trace;
-        case LogLevel::debug:    return spdlog::level::debug;
-        case LogLevel::info:     return spdlog::level::info;
-        case LogLevel::warn:     return spdlog::level::warn;
-        case LogLevel::error:    return spdlog::level::err;
-        case LogLevel::critical: return spdlog::level::critical;
-        case LogLevel::off:      return spdlog::level::off;
+        case LogLevel::trace:
+            return spdlog::level::trace;
+        case LogLevel::debug:
+            return spdlog::level::debug;
+        case LogLevel::info:
+            return spdlog::level::info;
+        case LogLevel::warn:
+            return spdlog::level::warn;
+        case LogLevel::error:
+            return spdlog::level::err;
+        case LogLevel::critical:
+            return spdlog::level::critical;
+        case LogLevel::off:
+            return spdlog::level::off;
     }
     return spdlog::level::info;
 }
 
 [[nodiscard]] LogLevel from_spdlog(spdlog::level::level_enum level) noexcept {
     switch (level) {
-        case spdlog::level::trace:    return LogLevel::trace;
-        case spdlog::level::debug:    return LogLevel::debug;
-        case spdlog::level::info:     return LogLevel::info;
-        case spdlog::level::warn:     return LogLevel::warn;
-        case spdlog::level::err:      return LogLevel::error;
-        case spdlog::level::critical: return LogLevel::critical;
-        case spdlog::level::off:      return LogLevel::off;
-        default:                      return LogLevel::info;
+        case spdlog::level::trace:
+            return LogLevel::trace;
+        case spdlog::level::debug:
+            return LogLevel::debug;
+        case spdlog::level::info:
+            return LogLevel::info;
+        case spdlog::level::warn:
+            return LogLevel::warn;
+        case spdlog::level::err:
+            return LogLevel::error;
+        case spdlog::level::critical:
+            return LogLevel::critical;
+        case spdlog::level::off:
+            return LogLevel::off;
+        default:
+            return LogLevel::info;
     }
 }
 
@@ -76,8 +91,7 @@ void init_logging(const LogConfig& config) {
 
     logger->set_pattern(kPattern);
     logger->set_level(to_spdlog(config.level));
-    logger->flush_on(config.flush_every_record ? to_spdlog(config.level)
-                                               : spdlog::level::warn);
+    logger->flush_on(config.flush_every_record ? to_spdlog(config.level) : spdlog::level::warn);
 
     spdlog::register_logger(logger);
     spdlog::set_default_logger(logger);
@@ -105,13 +119,20 @@ LogLevel parse_log_level(std::string_view name, LogLevel fallback) {
 
 std::string_view to_string(LogLevel level) {
     switch (level) {
-        case LogLevel::trace:    return "trace";
-        case LogLevel::debug:    return "debug";
-        case LogLevel::info:     return "info";
-        case LogLevel::warn:     return "warn";
-        case LogLevel::error:    return "error";
-        case LogLevel::critical: return "critical";
-        case LogLevel::off:      return "off";
+        case LogLevel::trace:
+            return "trace";
+        case LogLevel::debug:
+            return "debug";
+        case LogLevel::info:
+            return "info";
+        case LogLevel::warn:
+            return "warn";
+        case LogLevel::error:
+            return "error";
+        case LogLevel::critical:
+            return "critical";
+        case LogLevel::off:
+            return "off";
     }
     return "info";
 }

@@ -23,7 +23,9 @@ BreakConstructorInitializers: BeforeColon
 ConstructorInitializerIndentWidth: 4
 DerivePointerAlignment: false
 PointerAlignment: Left
-SeparateDefinitionBlocks: Always
+# Leave, not Always: the tag structs in ids.h read as a list, and forcing a
+# blank line between each one triples the file for no gain.
+SeparateDefinitionBlocks: Leave
 SpaceAfterTemplateKeyword: false
 
 FixNamespaceComments: true

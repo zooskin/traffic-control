@@ -28,6 +28,8 @@ struct TrafficClock {
     using time_point = std::chrono::time_point<TrafficClock, duration>;
 
     /// Simulation time may be stepped or rewound, so this is never steady.
+    /// The name is fixed by the standard clock interface, not by our style.
+    // NOLINTNEXTLINE(readability-identifier-naming)
     static constexpr bool is_steady = false;
 };
 

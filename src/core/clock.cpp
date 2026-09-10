@@ -17,7 +17,9 @@ TimePoint SystemClock::now() const {
 
 SimulationClock::SimulationClock(TimePoint start) noexcept : now_(start) {}
 
-TimePoint SimulationClock::now() const { return now_; }
+TimePoint SimulationClock::now() const {
+    return now_;
+}
 
 void SimulationClock::advance(Duration delta) {
     // A negative step is a caller bug, not external input, so this is an

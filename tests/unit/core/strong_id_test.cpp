@@ -3,10 +3,7 @@
 /// Naming follows docs/20_CODING_GUIDELINES.md §45:
 ///   <component>_<condition>_<expected>
 
-#include "traffic/core/ids.h"
 #include "traffic/core/strong_id.h"
-
-#include <gtest/gtest.h>
 
 #include <map>
 #include <set>
@@ -15,6 +12,10 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+
+#include <gtest/gtest.h>
+
+#include "traffic/core/ids.h"
 
 namespace traffic::core {
 namespace {

@@ -12,6 +12,9 @@ logs/
 *.log
 *.replay
 
+# Dev tooling (package-lock.json IS committed — CI runs npm ci)
+node_modules/
+
 # IDE
 .vs/
 .vscode/

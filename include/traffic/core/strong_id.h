@@ -33,7 +33,7 @@ namespace traffic::core {
 /// docs/20_CODING_GUIDELINES.md §23 requires deterministic behaviour, and
 /// ordered containers give a reproducible iteration order that the unordered
 /// ones do not.
-template <typename Tag>
+template<typename Tag>
 class StrongId {
 public:
     using value_type = std::string;
@@ -61,16 +61,19 @@ private:
 };
 
 /// Free function so generic code can stringify any identifier uniformly.
-template <typename Tag>
+template<typename Tag>
 [[nodiscard]] const std::string& to_string(const StrongId<Tag>& id) noexcept {
     return id.value();
 }
 
 }  // namespace traffic::core
 
+// NOLINTNEXTLINE(cert-dcl58-cpp) — specialising std::hash for a program-defined
+// type is explicitly permitted ([namespace.std]/2). The check cannot tell this
+// apart from adding a new declaration to namespace std.
 namespace std {
 
-template <typename Tag>
+template<typename Tag>
 struct hash<::traffic::core::StrongId<Tag>> {
     [[nodiscard]] size_t operator()(const ::traffic::core::StrongId<Tag>& id) const noexcept {
         return hash<string>{}(id.value());

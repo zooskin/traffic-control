@@ -5,14 +5,14 @@
 /// The simulation world (map, robots, humans, task generator, metrics, replay)
 /// is Phase 13 — see docs/02_SIMULATOR.md.
 
+#include <chrono>
+#include <cstdlib>
+#include <string_view>
+
 #include "traffic/core/clock.h"
 #include "traffic/core/ids.h"
 #include "traffic/core/time.h"
 #include "traffic/infrastructure/logging.h"
-
-#include <chrono>
-#include <cstdlib>
-#include <string_view>
 
 namespace {
 
@@ -33,6 +33,8 @@ int main(int argc, char** argv) {
 
     auto level = infra::LogLevel::info;
     for (int i = 1; i < argc; ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic) — argv
+        // is a C array handed to us by the runtime; there is no span to take.
         const std::string_view arg{argv[i]};
         if (arg.starts_with(kLogLevelFlag)) {
             level = infra::parse_log_level(arg.substr(kLogLevelFlag.size()), level);
@@ -54,8 +56,7 @@ int main(int argc, char** argv) {
     for (int step = 0; step < kDemoSteps; ++step) {
         clock.advance(kDemoStep);
         TC_LOG_INFO("t={}ms robot_id={} resource_id={} decision={} reason={}",
-                    std::chrono::duration_cast<Milliseconds>(time.now().time_since_epoch())
-                        .count(),
+                    std::chrono::duration_cast<Milliseconds>(time.now().time_since_epoch()).count(),
                     robot.value(),
                     corridor.value(),
                     "NONE",

@@ -31,23 +31,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install clang-format
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y "clang-format-${LLVM_VERSION}"
+      # The pinned formatter from package.json, not the distro's. Developers and
+      # CI must run the same binary or the check reports differences nobody can
+      # reproduce locally.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install pinned clang-format
+        run: npm ci
 
       - name: Check formatting
-        run: |
-          mapfile -t files < <(
-            find include src tests simulation benchmarks \
-              \( -name '*.h' -o -name '*.hpp' -o -name '*.cpp' \) 2>/dev/null | sort
-          )
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "no sources yet"
-            exit 0
-          fi
-          printf 'checking %d files\n' "${#files[@]}"
-          "clang-format-${LLVM_VERSION}" --dry-run --Werror "${files[@]}"
+        run: scripts/format.sh --check
 
   build:
     name: Build & Test (${{ matrix.name }})
@@ -145,13 +141,20 @@ jobs:
       - name: Install clang-tidy
         run: |
           sudo apt-get update
-          sudo apt-get install -y "clang-tidy-${LLVM_VERSION}"
+          sudo apt-get install -y "clang-tidy-${LLVM_VERSION}" "clang-${LLVM_VERSION}"
 
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
 
+      # Configure with clang, not the default gcc. clang-tidy parses using
+      # clang, so a compile_commands.json full of GCC-only flags
+      # (-Wduplicated-cond, -Wlogical-op, ...) makes every file fail with
+      # clang-diagnostic-unknown-warning-option before any real check runs.
       - name: Configure
+        env:
+          CC: clang-18
+          CXX: clang++-18
         run: cmake --preset dev
 
       # Only translation units are passed in; headers are reached through them

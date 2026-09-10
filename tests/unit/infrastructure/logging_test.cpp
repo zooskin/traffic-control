@@ -6,13 +6,13 @@
 
 #include "traffic/infrastructure/logging.h"
 
-#include <gtest/gtest.h>
-
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <system_error>
+
+#include <gtest/gtest.h>
 
 namespace traffic::infrastructure {
 namespace {
@@ -58,7 +58,10 @@ TEST_F(LoggingTest, logging_writes_records_to_file) {
 
     // A decision record shaped as docs/20_CODING_GUIDELINES.md §21 asks for.
     TC_LOG_INFO("robot_id={} resource_id={} decision={} reason={}",
-                "R001", "CORRIDOR-01", "GRANT", "NO_CONFLICT");
+                "R001",
+                "CORRIDOR-01",
+                "GRANT",
+                "NO_CONFLICT");
 
     shutdown_logging();
 
@@ -117,8 +120,12 @@ TEST_F(LoggingTest, logging_parse_log_level_unknown_name_returns_fallback) {
 }
 
 TEST_F(LoggingTest, logging_level_names_round_trip) {
-    for (const auto level : {LogLevel::trace, LogLevel::debug, LogLevel::info,
-                             LogLevel::warn, LogLevel::error, LogLevel::critical,
+    for (const auto level : {LogLevel::trace,
+                             LogLevel::debug,
+                             LogLevel::info,
+                             LogLevel::warn,
+                             LogLevel::error,
+                             LogLevel::critical,
                              LogLevel::off}) {
         EXPECT_EQ(parse_log_level(to_string(level), LogLevel::info), level);
     }

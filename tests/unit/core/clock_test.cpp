@@ -5,15 +5,28 @@
 /// the caller's control.
 
 #include "traffic/core/clock.h"
-#include "traffic/core/time.h"
 
-#include <gtest/gtest.h>
-
+#include <chrono>
+#include <concepts>
 #include <type_traits>
 #include <vector>
 
+#include <gtest/gtest.h>
+
+#include "traffic/core/time.h"
+
 namespace traffic::core {
 namespace {
+
+/// Detects whether a clock type offers `now()`.
+///
+/// The check has to go through a template parameter. Writing
+/// `requires { TrafficClock::now(); }` directly is a hard error rather than a
+/// failed constraint, because a qualified lookup into a complete type is not a
+/// SFINAE context — which is exactly how this test failed to compile the first
+/// time round.
+template<typename C>
+concept HasNow = requires { C::now(); };
 
 // ------------------------------------------------------------ SimulationClock
 
@@ -60,7 +73,10 @@ TEST(SimulationClock, simulation_clock_set_jumps_to_absolute_point) {
 /// every replay and every seeded scenario depends on.
 TEST(SimulationClock, simulation_clock_same_steps_produce_same_timeline) {
     const std::vector<Duration> steps{
-        Milliseconds{10}, Milliseconds{5}, Seconds{1}, Milliseconds{125},
+        Milliseconds{10},
+        Milliseconds{5},
+        Seconds{1},
+        Milliseconds{125},
     };
 
     const auto run = [&steps] {
@@ -124,7 +140,12 @@ TEST(IClock, clock_is_not_copyable_or_movable) {
 /// back. Guarding the property here means a future "convenience" now() gets
 /// caught by a failing build rather than by a non-reproducible simulation.
 TEST(TrafficClock, traffic_clock_exposes_no_now_function) {
-    static_assert(!requires { TrafficClock::now(); },
+    // Positive control first: without it, a concept that never matches anything
+    // would make the real assertion below pass for the wrong reason.
+    static_assert(HasNow<std::chrono::steady_clock>);
+    static_assert(HasNow<std::chrono::system_clock>);
+
+    static_assert(!HasNow<TrafficClock>,
                   "TrafficClock must not provide now(); time enters only through IClock");
     static_assert(!TrafficClock::is_steady);
     SUCCEED();

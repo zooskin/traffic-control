@@ -22,6 +22,7 @@ Checks: >
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-type-vararg,
   -google-readability-todo,
+  -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   -modernize-use-trailing-return-type,
   -performance-enum-size,
@@ -36,6 +37,9 @@ Checks: >
 #     with the domain in Phase 1. Re-enable once that exists.
 #   performance-enum-size      would have every small enum pick a narrow
 #     underlying type. Not worth the readability cost at this scale.
+#   misc-include-cleaner       demands a direct include for every name used,
+#     including every spdlog::level::* enumerator. It produced more output than
+#     every other check combined and buried the findings that mattered.
 
 # Only these become errors. The rest report. Compiler warnings are a separate
 # matter and are already fatal via -Werror / /WX (docs/19 §28).

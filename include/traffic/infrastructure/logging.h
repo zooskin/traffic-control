@@ -14,10 +14,10 @@
 /// Only the setup lives here. Call sites use the `TC_LOG_*` macros so that the
 /// backend stays replaceable and disabled levels cost nothing.
 
-#include <spdlog/spdlog.h>
-
 #include <string>
 #include <string_view>
+
+#include <spdlog/spdlog.h>
 
 namespace traffic::infrastructure {
 
@@ -27,7 +27,7 @@ struct LogConfig {
     LogLevel level{LogLevel::info};
 
     /// Empty disables file output.
-    std::string file_path{};
+    std::string file_path;
 
     /// Write from a background thread. Keeps the decision loop off the I/O
     /// path — see docs/23_SYSTEM_ARCHITECTURE.md §21.
@@ -52,10 +52,13 @@ void shutdown_logging();
 }  // namespace traffic::infrastructure
 
 // Level check happens before argument evaluation, so a disabled TC_LOG_TRACE
-// does not pay for formatting its arguments.
+// does not pay for formatting its arguments. That short-circuiting is the
+// reason these are macros and not variadic function templates.
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #define TC_LOG_TRACE(...) SPDLOG_TRACE(__VA_ARGS__)
 #define TC_LOG_DEBUG(...) SPDLOG_DEBUG(__VA_ARGS__)
 #define TC_LOG_INFO(...) SPDLOG_INFO(__VA_ARGS__)
 #define TC_LOG_WARN(...) SPDLOG_WARN(__VA_ARGS__)
 #define TC_LOG_ERROR(...) SPDLOG_ERROR(__VA_ARGS__)
 #define TC_LOG_CRITICAL(...) SPDLOG_CRITICAL(__VA_ARGS__)
+// NOLINTEND(cppcoreguidelines-macro-usage)
